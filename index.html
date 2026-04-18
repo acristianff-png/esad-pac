@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SAD·BH — Sistema de Gestão Assistencial</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; }
+    button:focus-visible { outline: 2px solid #3E92CC; outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo, useCallback, useEffect } = React;
+
+    // ╔══════════════════════════════════════════════════════════════════╗
+    //  SAD-BH · Sistema de Gestão Assistencial  v2.0
+    //  Stack: React · Google Apps Script · Google Sheets
+    // ╚══════════════════════════════════════════════════════════════════╝
+
+    // ── Configuração de produção ──────────────────────────────────────
+    const API_URL = "https://script.google.com/macros/s/AKfycbzNY8zQ5JwOJRLbg1KCns67_r7nnBYQ6vkLHeNWLdmyIdDQr_SyClF9zPcWW-sqCDwWFw/exec";
+    const DOMINIOS_VALIDOS = ["smsa.belo-horizonte.mg.gov.br","saude.mg.gov.br","pbh.gov.br","demo.sad"];
+
+    // ── Design Tokens ─────────────────────────────────────────────────
+    const C = {
+      bg:          "#F0F5FB",
+      surface:     "#FFFFFF",
+      surfaceAlt:  "#F7FAFC",
+      nav:         "#0B2545",
+      navActive:   "#13315C",
+      navAccent:   "#3E92CC",
+      navText:     "#8EAFD4",
+      navTextHov:  "#C8DDF2",
+      primary:     "#1A6FAD",
+      primaryHov:  "#155A8E",
+      primaryLt:   "#E8F3FC",
+      success:     "#15803D",
+      successBg:   "#DCFCE7",
+      successBd:   "#86EFAC",
+      warning:     "#B45309",
+      warningBg:   "#FEF3C7",
+      warningBd:   "#FCD34D",
+      danger:      "#DC2626",
+      dangerBg:    "#FEE2E2",
+      dangerBd:    "#FCA5A5",
+      info:        "#1D4ED8",
+      infoBg:      "#DBEAFE",
+      neutral:     "#6B7280",
+      neutralBg:   "#F3F4F6",
+      neutralBd:   "#E5E7EB",
+      text:        "#111827",
+      textSec:     "#4B5563",
+      textMuted:   "#9CA3AF",
+      border:      "#E2E8F0",
+      borderHov:   "#CBD5E1",
+      shadow:      "0 1px 3px rgba(0,0,0,0.07),0 1px 2px rgba(0,0,0,0.05)",
+      shadowMd:    "0 4px 6px rgba(0,0,0,0.07),0 2px 4px rgba(0,0,0,0.05)",
+      shadowLg:    "0 10px 25px rgba(0,0,0,0.08),0 4px 10px rgba(0,0,0,0.05)",
+      radius:      "12px",
+      radiusSm:    "8px",
+      radiusXs:    "6px",
+    };
+
+    // ── Utilitários ───────────────────────────────────────────────────
+    const gerarProntuario = (nome, nasc) => {
+      if (!nome || !nasc) return "";
+      const ini = nome.trim().split(/\s+/).filter(Boolean)
+        .map(p => p[0]).join("").toUpperCase().replace(/[^A-Z]/g, "");
+      const nums = nasc.replace(/\D/g, "");
+      if (ini.length < 2 || nums.length < 8) return "";
+      return `${ini}${nums.slice(0,2)}${nums.slice(2,4)}${nums.slice(4,8)}`;
+    };
+
+    const maskDate  = v => {
+      const d = v.replace(/\D/g,"").slice(0,8);
+      if (d.length <= 2) return d;
+      if (d.length <= 4) return `${d.slice(0,2)}/${d.slice(2)}`;
+      return `${d.slice(0,2)}/${d.slice(2,4)}/${d.slice(4)}`;
+    };
+    const maskCPF   = v => {
+      const d = v.replace(/\D/g,"").slice(0,11);
+      if (d.length <= 3) return d;
+      if (d.length <= 6) return `${d.slice(0,3)}.${d.slice(3)}`;
+      if (d.length <= 9) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;
+      return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
+    };
+    const maskPhone = v => {
+      const d = v.replace(/\D/g,"").slice(0,11);
+      if (d.length <= 2) return `(${d}`;
+      if (d.length <= 7) return `(${d.slice(0,2)}) ${d.slice(2)}`;
+      return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+    };
+    const maskCID   = v => v.replace(/[^A-Za-z0-9.]/g,"").toUpperCase().slice(0,7);
+
+    const diasAdmitido = adm => {
+      if (!adm) return null;
+      const [dd,mm,aaaa] = adm.split("/");
+      if (!dd||!mm||!aaaa||aaaa.length<4) return null;
+      const diff = (Date.now() - new Date(`${aaaa}-${mm}-${dd}`)) / 86400000;
+      return isNaN(diff) ? null : Math.max(0, Math.floor(diff));
+    };
+
+    const fmt = n => n !== null && n !== undefined ? String(n) : "—";
+
+    // ── Dados estáticos ───────────────────────────────────────────────
+    const EQUIPES_LIST = Array.from({length:22},(_,i)=>`Equipe ${String(i+1).padStart(2,"0")}`);
+
+    const DISPS_KEYS   = ["SVD","O2","SNE","GTT","TQT","VM","Hipodermoclise","ATB24h","ATB12h","CurativoEsp"];
+    const DISPS_LABELS = {SVD:"SVD",O2:"O₂",SNE:"SNE",GTT:"GTT",TQT:"TQT",VM:"Vent. Mecânica",
+      Hipodermoclise:"Hipodermóclise",ATB24h:"ATB 24/24h",ATB12h:"ATB 12/12h",CurativoEsp:"Curativo Especial"};
+    const DISPS_ICONS  = {SVD:"🩺",O2:"💨",SNE:"🔴",GTT:"🔵",TQT:"🫁",VM:"⚙️",
+      Hipodermoclise:"💉",ATB24h:"🧬",ATB12h:"🧬",CurativoEsp:"🩹"};
+
+    const COMPLEXIDADE_LABELS = ["","Baixa","Moderada","Alta","Crítica"];
+    const COMPLEXIDADE_COLORS = ["","#15803D","#2563EB","#D97706","#DC2626"];
+
+    const STATUS_MAP = {
+      ativo:     {c:"#166534",bg:"#DCFCE7",bd:"#86EFAC",label:"Ativo"},
+      avaliacao: {c:"#92400E",bg:"#FEF3C7",bd:"#FCD34D",label:"Em Avaliação"},
+      alta:      {c:"#1E40AF",bg:"#DBEAFE",bd:"#93C5FD",label:"Alta"},
+      negativa:  {c:"#374151",bg:"#F3F4F6",bd:"#D1D5DB",label:"Não Elegível"},
+      obito:     {c:"#991B1B",bg:"#FEE2E2",bd:"#FCA5A5",label:"Óbito"},
+    };
+
+    const ATB_STATS_SEED = [2,4,1,6,0,2,5,1,3,4,1,2,3,0,2,3,1,2,0,5,2,1];
+
+    const EQUIPE_STATS = EQUIPES_LIST.map((nome,i) => ({
+      nome,
+      ativos:      [8,12,7,15,10,9,13,6,11,14,8,10,7,12,9,11,13,8,10,7,12,9][i],
+      avaliados:   [2,1,3,0,2,1,0,3,1,2,0,1,2,3,0,1,2,1,0,2,1,3][i],
+      SVD:         [3,2,4,1,2,3,2,1,3,2,4,2,1,3,2,3,1,2,4,1,3,2][i],
+      ATB:         ATB_STATS_SEED[i],
+      CurativoEsp: [1,2,0,3,1,0,2,1,0,2,1,1,2,0,1,2,0,1,2,1,0,2][i],
+      O2:          [4,3,5,2,6,3,4,2,5,3,4,3,2,5,3,4,2,3,5,2,4,3][i],
+      motoristas:  [2,3,2,3,1,2,3,2,2,3,2,2,3,1,2,3,2,2,1,2,3,2][i],
+      negativas:   [1,0,2,1,0,1,0,2,1,0,0,1,1,0,1,0,1,0,0,1,0,1][i],
+    }));
+
+    const PACIENTES_MOCK = [
+      {id:"MASP01011945",nome:"Maria Aparecida Santos Pereira",nascimento:"01/01/1945",cpf:"123.456.789-00",telefone:"(31) 99999-1111",admissao:"10/04/2026",status:"ativo",equipe:"Equipe 01",cid:"J44.1",perfil:"DPOC avançado",complexidade:3,motivo:"Agudização DPOC + necessidade O2 domiciliar",SVD:true,O2:true,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB24h:true,ATB12h:false,CurativoEsp:false},
+      {id:"JRSS15031960",nome:"João Rodrigues da Silva Souza",nascimento:"15/03/1960",cpf:"234.567.890-11",telefone:"(31) 98888-2222",admissao:"05/04/2026",status:"ativo",equipe:"Equipe 01",cid:"I50.0",perfil:"Insuficiência Cardíaca",complexidade:4,motivo:"Descompensação cardíaca + curativo de ferida complexa",SVD:false,O2:true,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB24h:false,ATB12h:false,CurativoEsp:true},
+      {id:"AFC22061958",nome:"Ana Ferreira Costa",nascimento:"22/06/1958",cpf:"345.678.901-22",telefone:"(31) 97777-3333",admissao:"01/03/2026",status:"ativo",equipe:"Equipe 02",cid:"G20",perfil:"Parkinson",complexidade:2,motivo:"Parkinson avançado + disfagia severa",SVD:true,O2:false,SNE:true,GTT:false,TQT:false,VM:false,Hipodermoclise:true,ATB24h:false,ATB12h:false,CurativoEsp:false},
+      {id:"PCO08091970",nome:"Paulo Carvalho Oliveira",nascimento:"08/09/1970",cpf:"456.789.012-33",telefone:"(31) 96666-4444",admissao:"",status:"avaliacao",equipe:"Equipe 01",cid:"",perfil:"",complexidade:0,motivo:"Sequela AVC + incontinência urinária",SVD:false,O2:false,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB24h:false,ATB12h:false,CurativoEsp:false},
+      {id:"LSM30121965",nome:"Luisa Santos Miranda",nascimento:"30/12/1965",cpf:"567.890.123-44",telefone:"(31) 95555-5555",admissao:"20/03/2026",status:"alta",equipe:"Equipe 03",cid:"C50.9",perfil:"Oncológico",complexidade:3,motivo:"Cuidados paliativos oncológicos",SVD:false,O2:false,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB24h:false,ATB12h:false,CurativoEsp:false},
+      {id:"RLCO03071950",nome:"Rosa Lima Costa Oliveira",nascimento:"03/07/1950",cpf:"678.901.234-55",telefone:"(31) 94444-6666",admissao:"14/04/2026",status:"ativo",equipe:"Equipe 02",cid:"I10",perfil:"HAS + Demência",complexidade:3,motivo:"HAS descontrolada + demência avançada",SVD:true,O2:false,SNE:false,GTT:true,TQT:false,VM:false,Hipodermoclise:false,ATB24h:false,ATB12h:true,CurativoEsp:true},
+      {id:"CMSO12041948",nome:"Carlos Mendes Silva Oliveira",nascimento:"12/04/1948",cpf:"789.012.345-66",telefone:"(31) 93333-7777",admissao:"08/04/2026",status:"ativo",equipe:"Equipe 01",cid:"G35",perfil:"Esclerose Múltipla",complexidade:4,motivo:"EM progressiva + traqueostomia",SVD:true,O2:true,SNE:false,GTT:false,TQT:true,VM:true,Hipodermoclise:false,ATB24h:true,ATB12h:false,CurativoEsp:false},
+    ];
+
+    const AVALIACOES_NEGATIVAS_MOCK = [
+      {id:"FMR20051975",nome:"Fernanda Moura Ribeiro",nascimento:"20/05/1975",equipe:"Equipe 01",dataAval:"15/04/2026",motivo:"Estabilidade clínica — não atingiu critério SAD",motEncamin:"Sequela AVC leve"},
+      {id:"BKO11111980",nome:"Bruno Kurtz Oliveira",nascimento:"11/11/1980",equipe:"Equipe 01",dataAval:"12/04/2026",motivo:"Paciente deambulando — condição ambulatorial",motEncamin:"Diabetes + HAS"},
+    ];
+
+    // ── Componentes base ──────────────────────────────────────────────
+    const Badge = ({status}) => {
+      const s = STATUS_MAP[status] || STATUS_MAP.ativo;
+      return (
+        <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",
+          borderRadius:20,fontSize:11,fontWeight:700,letterSpacing:"0.03em",
+          color:s.c,background:s.bg,border:`1px solid ${s.bd}`}}>
+          {s.label}
+        </span>
+      );
+    };
+
+    const ComplexBadge = ({val}) => {
+      if (!val) return <span style={{color:C.textMuted,fontSize:12}}>—</span>;
+      return (
+        <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",
+          borderRadius:20,fontSize:11,fontWeight:700,
+          color:COMPLEXIDADE_COLORS[val],background:`${COMPLEXIDADE_COLORS[val]}18`,
+          border:`1px solid ${COMPLEXIDADE_COLORS[val]}40`}}>
+          {"★".repeat(val)} {COMPLEXIDADE_LABELS[val]}
+        </span>
+      );
+    };
+
+    const Chip = ({label,active,onClick,color}) => (
+      <button onClick={onClick} style={{
+        display:"inline-flex",alignItems:"center",gap:4,padding:"5px 12px",
+        borderRadius:20,border:`1.5px solid ${active?(color||C.primary):C.border}`,
+        background:active?`${color||C.primary}15`:C.surface,
+        color:active?(color||C.primary):C.textSec,
+        fontSize:12,fontWeight:active?700:400,cursor:"pointer",transition:"all 0.15s",
+      }}>{label}</button>
+    );
+
+    const Card = ({children,style={}}) => (
+      <div style={{background:C.surface,borderRadius:C.radius,boxShadow:C.shadow,
+        border:`1px solid ${C.border}`,...style}}>
+        {children}
+      </div>
+    );
+
+    const KPI = ({label,value,sub,color,icon}) => (
+      <Card style={{padding:"18px 20px",flex:1,minWidth:140}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div>
+            <div style={{fontSize:11,fontWeight:600,color:C.textMuted,textTransform:"uppercase",
+              letterSpacing:"0.07em",marginBottom:6}}>{label}</div>
+            <div style={{fontSize:28,fontWeight:800,color:color||C.text,lineHeight:1}}>{value}</div>
+            {sub && <div style={{fontSize:12,color:C.textSec,marginTop:4}}>{sub}</div>}
+          </div>
+          {icon && <span style={{fontSize:22,opacity:0.6}}>{icon}</span>}
+        </div>
+      </Card>
+    );
+
+    const Btn = ({children,onClick,variant="primary",size="md",disabled=false,style={}}) => {
+      const base = {cursor:disabled?"not-allowed":"pointer",border:"none",borderRadius:C.radiusSm,
+        fontWeight:600,transition:"all 0.15s",display:"inline-flex",alignItems:"center",gap:6,
+        opacity:disabled?0.55:1,...style};
+      const pad = size==="sm"?{padding:"6px 12px",fontSize:12}:size==="lg"?{padding:"11px 22px",fontSize:15}:{padding:"8px 16px",fontSize:13};
+      const variants = {
+        primary:{background:C.primary,color:"#fff"},
+        secondary:{background:C.neutralBg,color:C.text,border:`1px solid ${C.border}`},
+        success:{background:C.success,color:"#fff"},
+        danger:{background:C.danger,color:"#fff"},
+        ghost:{background:"transparent",color:C.primary},
+      };
+      return <button onClick={disabled?undefined:onClick} style={{...base,...pad,...variants[variant]}}>{children}</button>;
+    };
+
+    const Input = ({label,value,onChange,placeholder,mask,type="text",required,error,hint,disabled}) => {
+      const handleChange = e => {
+        let v = e.target.value;
+        if (mask === "date")  v = maskDate(v);
+        if (mask === "cpf")   v = maskCPF(v);
+        if (mask === "phone") v = maskPhone(v);
+        if (mask === "cid")   v = maskCID(v);
+        if (mask === "name")  v = v.replace(/[0-9]/g,"");
+        onChange(v);
+      };
+      return (
+        <div style={{display:"flex",flexDirection:"column",gap:4}}>
+          {label && (
+            <label style={{fontSize:12,fontWeight:600,color:error?C.danger:C.textSec,letterSpacing:"0.02em"}}>
+              {label}{required&&<span style={{color:C.danger}}> *</span>}
+            </label>
+          )}
+          <input
+            type={type} value={value} onChange={handleChange}
+            placeholder={placeholder} disabled={disabled}
+            style={{padding:"9px 12px",borderRadius:C.radiusXs,
+              border:`1.5px solid ${error?C.danger:C.border}`,
+              background:disabled?C.surfaceAlt:C.surface,
+              color:C.text,fontSize:13,outline:"none",
+              boxShadow:error?`0 0 0 3px ${C.danger}20`:undefined,
+              transition:"border-color 0.15s",width:"100%",boxSizing:"border-box"}}
+          />
+          {(error||hint) && <span style={{fontSize:11,color:error?C.danger:C.textMuted}}>{error||hint}</span>}
+        </div>
+      );
+    };
+
+    const Select = ({label,value,onChange,options,required,disabled}) => (
+      <div style={{display:"flex",flexDirection:"column",gap:4}}>
+        {label && <label style={{fontSize:12,fontWeight:600,color:C.textSec,letterSpacing:"0.02em"}}>
+          {label}{required&&<span style={{color:C.danger}}> *</span>}
+        </label>}
+        <select value={value} onChange={e=>onChange(e.target.value)} disabled={disabled}
+          style={{padding:"9px 12px",borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,
+            background:disabled?C.surfaceAlt:C.surface,color:C.text,fontSize:13,outline:"none",
+            appearance:"auto",width:"100%"}}>
+          {options.map(o=>(
+            <option key={o.value||o} value={o.value||o}>{o.label||o}</option>
+          ))}
+        </select>
+      </div>
+    );
+
+    const Toggle = ({label,icon,checked,onChange}) => (
+      <label style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",
+        borderRadius:C.radiusXs,border:`1.5px solid ${checked?C.primary:C.border}`,
+        background:checked?C.primaryLt:C.surface,cursor:"pointer",
+        transition:"all 0.15s",userSelect:"none"}}>
+        <input type="checkbox" checked={checked} onChange={e=>onChange(e.target.checked)}
+          style={{accentColor:C.primary,width:15,height:15}}/>
+        <span style={{fontSize:12,fontWeight:checked?700:400,color:checked?C.primary:C.textSec}}>
+          {icon} {label}
+        </span>
+      </label>
+    );
+
+    const Divider = ({label}) => (
+      <div style={{display:"flex",alignItems:"center",gap:12,margin:"8px 0"}}>
+        <div style={{flex:1,height:1,background:C.border}}/>
+        {label&&<span style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase",
+          letterSpacing:"0.08em",whiteSpace:"nowrap"}}>{label}</span>}
+        <div style={{flex:1,height:1,background:C.border}}/>
+      </div>
+    );
+
+    // ── Navegação lateral ─────────────────────────────────────────────
+    const MENUS = {
+      equipe: [
+        {id:"dashboard",label:"Dashboard",icon:"📊"},
+        {id:"pacientes",label:"Pacientes",icon:"👥"},
+        {id:"admissao",label:"Nova Admissão",icon:"➕"},
+        {id:"busca_ativa",label:"Busca Ativa",icon:"🔍"},
+        {id:"censo",label:"Censo Diário",icon:"📋"},
+      ],
+      coordenacao: [
+        {id:"coord_dash",label:"Painel Geral",icon:"🗺️"},
+        {id:"coord_equipes",label:"22 Equipes",icon:"🏥"},
+        {id:"pacientes",label:"Pacientes",icon:"👥"},
+      ],
+    };
+
+    const Sidebar = ({role,page,setPage,user,onLogout}) => {
+      const items = MENUS[role] || [];
+      return (
+        <nav style={{width:220,background:C.nav,display:"flex",flexDirection:"column",
+          height:"100vh",position:"sticky",top:0,flexShrink:0}}>
+          <div style={{padding:"24px 20px 16px",borderBottom:`1px solid #ffffff10`}}>
+            <div style={{fontSize:15,fontWeight:800,color:"#fff",letterSpacing:"-0.02em"}}>SAD·BH</div>
+            <div style={{fontSize:10,color:C.navText,marginTop:2,letterSpacing:"0.06em",
+              textTransform:"uppercase"}}>Gestão Assistencial</div>
+          </div>
+          <div style={{flex:1,padding:"12px 10px",overflowY:"auto"}}>
+            {items.map(item=>(
+              <button key={item.id} onClick={()=>setPage(item.id)}
+                style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 12px",
+                  borderRadius:C.radiusSm,border:"none",cursor:"pointer",marginBottom:2,
+                  background:page===item.id?C.navActive:"transparent",
+                  color:page===item.id?"#fff":C.navText,fontSize:13,fontWeight:page===item.id?600:400,
+                  transition:"all 0.15s",textAlign:"left"}}>
+                <span style={{fontSize:15}}>{item.icon}</span>{item.label}
+              </button>
+            ))}
+          </div>
+          <div style={{padding:"12px 16px",borderTop:`1px solid #ffffff10`}}>
+            <div style={{fontSize:11,color:C.navText,marginBottom:2}}>Logado como</div>
+            <div style={{fontSize:12,color:"#fff",fontWeight:600,marginBottom:8,
+              overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user}</div>
+            <div style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 8px",
+              borderRadius:12,background:role==="coordenacao"?"#7C3AED22":"#15803D22",
+              border:`1px solid ${role==="coordenacao"?"#7C3AED":"#15803D"}`,
+              fontSize:10,fontWeight:700,color:role==="coordenacao"?"#C4B5FD":"#86EFAC",
+              marginBottom:10,textTransform:"uppercase",letterSpacing:"0.04em"}}>
+              {role==="coordenacao"?"Coordenação":"Equipe"}
+            </div>
+            <button onClick={onLogout} style={{display:"flex",alignItems:"center",gap:6,
+              background:"transparent",border:"none",color:C.navText,fontSize:12,cursor:"pointer",
+              padding:0}}>
+              ← Sair
+            </button>
+          </div>
+        </nav>
+      );
+    };
+
+    // ── Login ─────────────────────────────────────────────────────────
+    const LoginView = ({onLogin}) => {
+      const [email,setEmail] = useState("");
+      const [err,setErr]     = useState("");
+
+      const handleLogin = () => {
+        const domain = email.split("@")[1];
+        if (!DOMINIOS_VALIDOS.includes(domain)) {
+          setErr("Domínio não autorizado. Use seu e-mail institucional.");
+          return;
+        }
+        const role = /coord|chefia|gestao/i.test(email) ? "coordenacao" : "equipe";
+        onLogin(email, role);
+      };
+
+      const handleKey = e => { if (e.key === "Enter") handleLogin(); };
+
+      return (
+        <div style={{minHeight:"100vh",background:`linear-gradient(135deg,${C.nav} 0%,#1A5FAD 100%)`,
+          display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <Card style={{width:380,padding:40}}>
+            <div style={{textAlign:"center",marginBottom:32}}>
+              <div style={{fontSize:36,marginBottom:8}}>🏥</div>
+              <div style={{fontSize:22,fontWeight:800,color:C.text,letterSpacing:"-0.02em"}}>SAD·BH</div>
+              <div style={{fontSize:13,color:C.textSec,marginTop:4}}>Serviço de Atenção Domiciliar</div>
+              <div style={{fontSize:11,color:C.textMuted}}>Secretaria Municipal de Saúde · BH</div>
+            </div>
+            <div style={{marginBottom:16}}>
+              <Input label="E-mail institucional" value={email} onChange={setEmail}
+                placeholder="usuario@smsa.belo-horizonte.mg.gov.br"
+                error={err} required/>
+              <input type="text" onKeyDown={handleKey} style={{position:"absolute",opacity:0,pointerEvents:"none"}}/>
+            </div>
+            <Btn onClick={handleLogin} size="lg" style={{width:"100%",justifyContent:"center"}}>
+              Entrar no Sistema
+            </Btn>
+            <div style={{marginTop:20,padding:12,background:C.primaryLt,borderRadius:C.radiusXs,
+              fontSize:11,color:C.primary}}>
+              <strong>Demo:</strong> equipe@demo.sad · coord@demo.sad
+            </div>
+          </Card>
+        </div>
+      );
+    };
+
+    // ── Dashboard Equipe ──────────────────────────────────────────────
+    const DashboardEquipe = ({pacientes,equipe}) => {
+      const ativos = pacientes.filter(p=>p.status==="ativo"&&p.equipe===equipe);
+      const emAval  = pacientes.filter(p=>p.status==="avaliacao"&&p.equipe===equipe);
+      const diasMedio = ativos.reduce((s,p)=>{
+        const d=diasAdmitido(p.admissao); return d!==null?s+d:s;
+      },0) / (ativos.length||1);
+      const totalDisps = DISPS_KEYS.reduce((s,k)=>s+ativos.filter(p=>p[k]).length,0);
+
+      return (
+        <div style={{padding:24,display:"flex",flexDirection:"column",gap:20}}>
+          <div>
+            <h2 style={{fontSize:20,fontWeight:800,color:C.text,margin:0}}>{equipe}</h2>
+            <p style={{color:C.textSec,margin:"4px 0 0",fontSize:13}}>Painel de acompanhamento — {new Date().toLocaleDateString("pt-BR")}</p>
+          </div>
+
+          <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+            <KPI label="Ativos" value={ativos.length} icon="👥" color={C.success}/>
+            <KPI label="Em Avaliação" value={emAval.length} icon="🔍" color={C.warning}/>
+            <KPI label="Dias (média)" value={Math.round(diasMedio)} sub="permanência" icon="📅" color={C.primary}/>
+            <KPI label="Procedimentos" value={totalDisps} sub="dispositivos ativos" icon="🩺" color="#7C3AED"/>
+          </div>
+
+          <Card style={{padding:20}}>
+            <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 16px"}}>Dispositivos Ativos</h3>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {DISPS_KEYS.map(k=>{
+                const count = ativos.filter(p=>p[k]).length;
+                const pct   = ativos.length ? (count/ativos.length)*100 : 0;
+                return (
+                  <div key={k}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                      <span style={{fontSize:12,color:C.textSec}}>{DISPS_ICONS[k]} {DISPS_LABELS[k]}</span>
+                      <span style={{fontSize:12,fontWeight:700,color:count>0?C.primary:C.textMuted}}>{count}</span>
+                    </div>
+                    <div style={{height:5,borderRadius:3,background:C.neutralBg,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:`${pct}%`,background:C.primary,
+                        borderRadius:3,transition:"width 0.4s"}}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card style={{padding:20}}>
+            <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 16px"}}>Pacientes Ativos</h3>
+            {ativos.length===0&&<p style={{color:C.textMuted,fontSize:13}}>Nenhum paciente ativo.</p>}
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {ativos.map(p=>{
+                const dias = diasAdmitido(p.admissao);
+                const dispsAtivos = DISPS_KEYS.filter(k=>p[k]);
+                return (
+                  <div key={p.id} style={{display:"flex",alignItems:"center",gap:12,
+                    padding:"10px 14px",borderRadius:C.radiusXs,
+                    border:`1px solid ${C.border}`,background:C.surfaceAlt}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:700,color:C.text}}>{p.nome}</div>
+                      <div style={{fontSize:11,color:C.textMuted,marginTop:2}}>
+                        {p.id} · {p.cid} · {dias!==null?`${dias}d`:"—"}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"flex-end"}}>
+                      {dispsAtivos.slice(0,4).map(k=>(
+                        <span key={k} style={{fontSize:10,padding:"2px 6px",borderRadius:12,
+                          background:C.primaryLt,color:C.primary,fontWeight:600}}>{k}</span>
+                      ))}
+                      {dispsAtivos.length>4&&<span style={{fontSize:10,color:C.textMuted}}>+{dispsAtivos.length-4}</span>}
+                    </div>
+                    <ComplexBadge val={p.complexidade}/>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      );
+    };
+
+    // ── Dashboard Coordenação ─────────────────────────────────────────
+    const DashboardCoordenacao = ({pacientes,onSelectEquipe}) => {
+      const totalATB= EQUIPE_STATS.reduce((s,e)=>s+e.ATB,0);
+      const mediaATB= totalATB/22;
+
+      return (
+        <div style={{padding:24,display:"flex",flexDirection:"column",gap:20}}>
+          <div>
+            <h2 style={{fontSize:20,fontWeight:800,color:C.text,margin:0}}>Painel Geral — Coordenação</h2>
+            <p style={{color:C.textSec,margin:"4px 0 0",fontSize:13}}>22 equipes · {new Date().toLocaleDateString("pt-BR")}</p>
+          </div>
+
+          <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+            <KPI label="Pacientes Ativos" value={EQUIPE_STATS.reduce((s,e)=>s+e.ativos,0)} icon="👥" color={C.success}/>
+            <KPI label="Em Avaliação" value={EQUIPE_STATS.reduce((s,e)=>s+e.avaliados,0)} icon="🔍" color={C.warning}/>
+            <KPI label="ATB Parenteral" value={totalATB} sub="total de equipes" icon="🧬" color={C.danger}/>
+            <KPI label="Motoristas" value={EQUIPE_STATS.reduce((s,e)=>s+e.motoristas,0)} icon="🚑" color={C.primary}/>
+          </div>
+
+          <Card style={{padding:20}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:0}}>Mapa de Carga — 22 Equipes</h3>
+              <div style={{display:"flex",gap:8,fontSize:11,color:C.textSec}}>
+                <span>🟢 Normal</span><span>🟡 Atenção</span><span>🔴 Sobrecarga</span>
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:8}}>
+              {EQUIPE_STATS.map(e=>{
+                const atbRatio  = mediaATB>0 ? e.ATB/mediaATB : 1;
+                const isAlert   = atbRatio >= 1.3;
+                const isCrit    = atbRatio >= 1.7;
+                const bg        = isCrit?C.dangerBg:isAlert?C.warningBg:C.successBg;
+                const bd        = isCrit?C.dangerBd:isAlert?C.warningBd:C.successBd;
+                const tc        = isCrit?C.danger:isAlert?C.warning:C.success;
+                return (
+                  <button key={e.nome} onClick={()=>onSelectEquipe(e.nome)}
+                    style={{padding:"10px 12px",borderRadius:C.radiusXs,background:bg,
+                      border:`1.5px solid ${bd}`,cursor:"pointer",textAlign:"left",
+                      transition:"all 0.15s"}}>
+                    <div style={{fontSize:11,fontWeight:700,color:tc,marginBottom:4}}>{e.nome}</div>
+                    <div style={{fontSize:11,color:C.textSec,display:"flex",flexDirection:"column",gap:2}}>
+                      <span>👥 {e.ativos} ativos</span>
+                      <span>🧬 {e.ATB} ATB</span>
+                      <span>🩹 {e.CurativoEsp} cur.</span>
+                      <span>🚑 {e.motoristas} mot.</span>
+                    </div>
+                    {isCrit&&<div style={{fontSize:10,fontWeight:700,color:C.danger,marginTop:4}}>⚠ SOBRECARGA ATB</div>}
+                    {isAlert&&!isCrit&&<div style={{fontSize:10,fontWeight:700,color:C.warning,marginTop:4}}>⚡ ATENÇÃO</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      );
+    };
+
+    // ── Lista de Pacientes ────────────────────────────────────────────
+    const PacientesList = ({pacientes,equipe,role,onAdmitir,onNegativa}) => {
+      const [busca,setBusca]       = useState("");
+      const [filtro,setFiltro]     = useState("todos");
+      const [expandido,setExpandido]= useState(null);
+
+      const lista = useMemo(()=>pacientes.filter(p=>{
+        const matchEquipe = role==="equipe" ? p.equipe===equipe : true;
+        const matchFiltro = filtro==="todos" || p.status===filtro;
+        const q = busca.toLowerCase();
+        const matchBusca = !busca || p.id.toLowerCase().includes(q) ||
+          p.nome.toLowerCase().includes(q) || (p.cid||"").toLowerCase().includes(q);
+        return matchEquipe && matchFiltro && matchBusca;
+      }),[pacientes,equipe,role,filtro,busca]);
+
+      return (
+        <div style={{padding:24,display:"flex",flexDirection:"column",gap:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
+            <h2 style={{fontSize:20,fontWeight:800,color:C.text,margin:0}}>Pacientes</h2>
+          </div>
+
+          <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+            <input value={busca} onChange={e=>setBusca(e.target.value)}
+              placeholder="🔍  Buscar por prontuário, nome ou CID..."
+              style={{flex:1,minWidth:200,padding:"9px 14px",borderRadius:C.radiusSm,
+                border:`1.5px solid ${C.border}`,fontSize:13,outline:"none",background:C.surface}}/>
+            {["todos","ativo","avaliacao","alta","obito"].map(f=>(
+              <Chip key={f} label={{todos:"Todos",ativo:"Ativos",avaliacao:"Em Avaliação",
+                alta:"Altas",obito:"Óbitos"}[f]}
+                active={filtro===f} onClick={()=>setFiltro(f)}/>
+            ))}
+          </div>
+
+          <div style={{fontSize:12,color:C.textMuted}}>{lista.length} registro(s)</div>
+
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {lista.length===0&&<Card style={{padding:32,textAlign:"center"}}>
+              <div style={{fontSize:32,marginBottom:8}}>🔍</div>
+              <div style={{color:C.textMuted}}>Nenhum paciente encontrado</div>
+            </Card>}
+            {lista.map(p=>{
+              const expanded = expandido===p.id;
+              const dias = diasAdmitido(p.admissao);
+              const dispsAtivos = DISPS_KEYS.filter(k=>p[k]);
+              return (
+                <Card key={p.id} style={{overflow:"hidden"}}>
+                  <button onClick={()=>setExpandido(expanded?null:p.id)}
+                    style={{width:"100%",padding:"14px 18px",background:"none",border:"none",
+                      cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{flex:1}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                        <span style={{fontSize:14,fontWeight:700,color:C.text}}>{p.nome}</span>
+                        <Badge status={p.status}/>
+                        {p.complexidade>0&&<ComplexBadge val={p.complexidade}/>}
+                      </div>
+                      <div style={{fontSize:12,color:C.textMuted,marginTop:3}}>
+                        📋 {p.id} · 🩺 {p.cid||"—"} · {p.equipe}
+                        {dias!==null&&` · ${dias} dias`}
+                      </div>
+                    </div>
+                    <span style={{color:C.textMuted,fontSize:16}}>{expanded?"▲":"▼"}</span>
+                  </button>
+                  {expanded&&(
+                    <div style={{padding:"0 18px 18px",borderTop:`1px solid ${C.border}`}}>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginTop:14}}>
+                        <div><div style={{fontSize:11,color:C.textMuted}}>Prontuário</div><div style={{fontSize:13,fontWeight:700}}>{p.id}</div></div>
+                        <div><div style={{fontSize:11,color:C.textMuted}}>Data de Nasc.</div><div style={{fontSize:13}}>{p.nascimento}</div></div>
+                        <div><div style={{fontSize:11,color:C.textMuted}}>Telefone</div><div style={{fontSize:13}}>{p.telefone||"—"}</div></div>
+                        <div><div style={{fontSize:11,color:C.textMuted}}>CID</div><div style={{fontSize:13}}>{p.cid||"—"}</div></div>
+                        <div><div style={{fontSize:11,color:C.textMuted}}>Perfil</div><div style={{fontSize:13}}>{p.perfil||"—"}</div></div>
+                        <div><div style={{fontSize:11,color:C.textMuted}}>Admissão</div><div style={{fontSize:13}}>{p.admissao||"—"}</div></div>
+                        <div style={{gridColumn:"1/-1"}}><div style={{fontSize:11,color:C.textMuted}}>Motivo de encaminhamento</div><div style={{fontSize:13}}>{p.motivo||"—"}</div></div>
+                      </div>
+                      {dispsAtivos.length>0&&(
+                        <div style={{marginTop:14}}>
+                          <div style={{fontSize:11,fontWeight:600,color:C.textMuted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.06em"}}>Dispositivos/Procedimentos</div>
+                          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                            {dispsAtivos.map(k=>(
+                              <span key={k} style={{fontSize:12,padding:"4px 10px",borderRadius:12,
+                                background:C.primaryLt,color:C.primary,fontWeight:600}}>
+                                {DISPS_ICONS[k]} {DISPS_LABELS[k]}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {p.status==="avaliacao"&&(
+                        <div style={{display:"flex",gap:8,marginTop:14}}>
+                          <Btn variant="success" onClick={()=>onAdmitir(p)}>✅ Admitir Paciente</Btn>
+                          <Btn variant="secondary" onClick={()=>onNegativa(p)}>❌ Não Elegível</Btn>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      );
+    };
+
+    // ── Formulário de Admissão ────────────────────────────────────────
+    const FORM_INIT = {
+      nome:"",nascimento:"",cpf:"",telefone:"",equipe:"Equipe 01",
+      cid:"",perfil:"",complexidade:"1",motivo:"",
+      ...Object.fromEntries(DISPS_KEYS.map(k=>[k,false])),
+    };
+
+    const AdmissaoForm = ({equipeDefault,onSave,role}) => {
+      const [form,setForm]   = useState({...FORM_INIT,equipe:equipeDefault||"Equipe 01"});
+      const [errors,setErrors]= useState({});
+      const [saved,setSaved]  = useState(false);
+      const [loading,setLoading]= useState(false);
+
+      const prontuario = gerarProntuario(form.nome,form.nascimento);
+
+      const set = (k,v) => setForm(f=>({...f,[k]:v}));
+
+      const validate = () => {
+        const e = {};
+        if (!form.nome.trim())       e.nome       = "Campo obrigatório";
+        if (!form.nascimento.trim()) e.nascimento  = "Campo obrigatório";
+        if (!form.cid.trim())        e.cid        = "Campo obrigatório";
+        if (!prontuario)             e.nome       = "Nome deve ter ≥ 2 palavras";
+        setErrors(e);
+        return Object.keys(e).length===0;
+      };
+
+      const handleSubmit = async () => {
+        if (!validate()) return;
+        setLoading(true);
+        await new Promise(r=>setTimeout(r,800));
+        const paciente = {
+          ...form,
+          id:prontuario,
+          admissao:new Date().toLocaleDateString("pt-BR"),
+          status:"ativo",
+        };
+        onSave(paciente);
+        setForm({...FORM_INIT,equipe:equipeDefault||"Equipe 01"});
+        setSaved(true);
+        setLoading(false);
+        setTimeout(()=>setSaved(false),3000);
+      };
+
+      return (
+        <div style={{padding:24,maxWidth:760}}>
+          <h2 style={{fontSize:20,fontWeight:800,color:C.text,margin:"0 0 4px"}}>Nova Admissão</h2>
+          <p style={{color:C.textSec,margin:"0 0 24px",fontSize:13}}>Preencha nome e data de nascimento para gerar o prontuário automaticamente.</p>
+
+          {prontuario&&(
+            <div style={{marginBottom:20,padding:"14px 18px",borderRadius:C.radiusSm,
+              background:C.primaryLt,border:`1.5px solid ${C.primary}`,
+              display:"flex",alignItems:"center",gap:12}}>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:C.primary,textTransform:"uppercase",letterSpacing:"0.06em"}}>Prontuário Gerado</div>
+                <div style={{fontSize:22,fontWeight:900,color:C.primary,letterSpacing:"0.04em"}}>{prontuario}</div>
+              </div>
+              <div style={{fontSize:11,color:C.primary,marginLeft:"auto"}}>ID imutável após admissão</div>
+            </div>
+          )}
+
+          <div style={{display:"flex",flexDirection:"column",gap:20}}>
+            <Divider label="Identificação"/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+              <div style={{gridColumn:"1/-1"}}>
+                <Input label="Nome Completo" value={form.nome} onChange={v=>set("nome",v)}
+                  mask="name" required error={errors.nome} placeholder="Nome completo do paciente"/>
+              </div>
+              <Input label="Data de Nascimento" value={form.nascimento} onChange={v=>set("nascimento",v)}
+                mask="date" required error={errors.nascimento} placeholder="DD/MM/AAAA"/>
+              <Input label="CPF" value={form.cpf} onChange={v=>set("cpf",v)}
+                mask="cpf" placeholder="000.000.000-00"/>
+              <Input label="Telefone / Cuidador" value={form.telefone} onChange={v=>set("telefone",v)}
+                mask="phone" placeholder="(31) 99999-9999"/>
+              {role==="coordenacao"&&(
+                <Select label="Equipe Responsável" value={form.equipe} onChange={v=>set("equipe",v)}
+                  options={EQUIPES_LIST} required/>
+              )}
+            </div>
+
+            <Divider label="Dados Clínicos"/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
+              <Input label="CID" value={form.cid} onChange={v=>set("cid",v)}
+                mask="cid" required error={errors.cid} placeholder="J44.1"/>
+              <Input label="Perfil Epidemiológico" value={form.perfil} onChange={v=>set("perfil",v)}
+                placeholder="Ex: DPOC, Parkinson, Oncológico"/>
+              <Select label="Complexidade" value={form.complexidade} onChange={v=>set("complexidade",v)}
+                options={[{value:"1",label:"1 — Baixa"},{value:"2",label:"2 — Moderada"},
+                  {value:"3",label:"3 — Alta"},{value:"4",label:"4 — Crítica"}]} required/>
+              <div style={{gridColumn:"1/-1"}}>
+                <Input label="Motivo de Encaminhamento / Justificativa SAD" value={form.motivo}
+                  onChange={v=>set("motivo",v)} placeholder="Descreva a condição clínica que justifica o SAD"/>
+              </div>
+            </div>
+
+            <Divider label="Dispositivos e Procedimentos"/>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:8}}>
+              {DISPS_KEYS.map(k=>(
+                <Toggle key={k} label={DISPS_LABELS[k]} icon={DISPS_ICONS[k]}
+                  checked={form[k]} onChange={v=>set(k,v)}/>
+              ))}
+            </div>
+
+            <div style={{display:"flex",gap:12,alignItems:"center",marginTop:8}}>
+              <Btn onClick={handleSubmit} size="lg" disabled={loading}>
+                {loading?"⏳ Registrando...":"✅ Admitir Paciente"}
+              </Btn>
+              <Btn variant="secondary" onClick={()=>{setForm({...FORM_INIT,equipe:equipeDefault||"Equipe 01"});setErrors({});}}>
+                Limpar
+              </Btn>
+              {saved&&<span style={{fontSize:13,color:C.success,fontWeight:600}}>✓ Paciente admitido com sucesso!</span>}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ── Busca Ativa ───────────────────────────────────────────────────
+    const BUSCA_FORM_INIT = {nome:"",nascimento:"",cpf:"",telefone:"",equipe:"Equipe 01",motivo:""};
+
+    const BuscaAtiva = ({equipeDefault,pacientes,role,onRegistrar,onAdmitir,onNegativa}) => {
+      const [form,setForm]   = useState({...BUSCA_FORM_INIT,equipe:equipeDefault||"Equipe 01"});
+      const [errors,setErrors]= useState({});
+      const [saved,setSaved]  = useState(false);
+      const [motivoNeg,setMotivoNeg]= useState({});
+      const set = (k,v) => setForm(f=>({...f,[k]:v}));
+      const prontuario = gerarProntuario(form.nome,form.nascimento);
+
+      const emAval = pacientes.filter(p=>p.status==="avaliacao"&&(role==="equipe"?p.equipe===equipeDefault:true));
+      const negativas = pacientes.filter(p=>p.status==="negativa"&&(role==="equipe"?p.equipe===equipeDefault:true));
+
+      const validate = () => {
+        const e={};
+        if (!form.nome.trim())       e.nome="Obrigatório";
+        if (!form.nascimento.trim()) e.nascimento="Obrigatório";
+        if (!form.motivo.trim())     e.motivo="Descreva o motivo";
+        if (!prontuario)             e.nome="Mín. 2 palavras";
+        setErrors(e);
+        return Object.keys(e).length===0;
+      };
+
+      const handleRegistrar = async ()=>{
+        if (!validate()) return;
+        onRegistrar({...form,id:prontuario,status:"avaliacao",
+          ...Object.fromEntries(DISPS_KEYS.map(k=>[k,false]))});
+        setForm({...BUSCA_FORM_INIT,equipe:equipeDefault||"Equipe 01"});
+        setSaved(true); setTimeout(()=>setSaved(false),3000);
+      };
+
+      return (
+        <div style={{padding:24,display:"flex",flexDirection:"column",gap:24,maxWidth:760}}>
+          <div>
+            <h2 style={{fontSize:20,fontWeight:800,color:C.text,margin:0}}>Busca Ativa / Avaliação de Elegibilidade</h2>
+            <p style={{color:C.textSec,margin:"4px 0 0",fontSize:13}}>Registre pacientes em avaliação — admita ou registre negativa com justificativa.</p>
+          </div>
+
+          <Card style={{padding:20}}>
+            <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 16px"}}>Registrar Novo Avaliado</h3>
+            {prontuario&&(
+              <div style={{marginBottom:16,padding:"10px 14px",borderRadius:C.radiusXs,
+                background:"#FEF3C7",border:"1px solid #FCD34D",fontSize:13,color:"#92400E",fontWeight:700}}>
+                📋 Prontuário provisório: {prontuario}
+              </div>
+            )}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+              <div style={{gridColumn:"1/-1"}}>
+                <Input label="Nome Completo" value={form.nome} onChange={v=>set("nome",v)}
+                  mask="name" required error={errors.nome}/>
+              </div>
+              <Input label="Data de Nascimento" value={form.nascimento} onChange={v=>set("nascimento",v)}
+                mask="date" required error={errors.nascimento} placeholder="DD/MM/AAAA"/>
+              <Input label="CPF" value={form.cpf} onChange={v=>set("cpf",v)} mask="cpf"/>
+              <Input label="Telefone" value={form.telefone} onChange={v=>set("telefone",v)} mask="phone"/>
+              {role==="coordenacao"&&(
+                <Select label="Equipe" value={form.equipe} onChange={v=>set("equipe",v)} options={EQUIPES_LIST}/>
+              )}
+              <div style={{gridColumn:"1/-1"}}>
+                <Input label="Motivo do Encaminhamento" value={form.motivo} onChange={v=>set("motivo",v)}
+                  required error={errors.motivo} placeholder="Ex: Pós-AVC com necessidade de fisioterapia domiciliar"/>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:14,alignItems:"center"}}>
+              <Btn onClick={handleRegistrar}>🔍 Registrar para Avaliação</Btn>
+              {saved&&<span style={{fontSize:13,color:C.success,fontWeight:600}}>✓ Registrado!</span>}
+            </div>
+          </Card>
+
+          <Card style={{padding:20}}>
+            <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 16px"}}>
+              Aguardando Decisão ({emAval.length})
+            </h3>
+            {emAval.length===0&&<p style={{color:C.textMuted,fontSize:13}}>Nenhum paciente em avaliação.</p>}
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {emAval.map(p=>(
+                <div key={p.id} style={{padding:"12px 14px",border:`1px solid ${C.warningBd}`,
+                  borderRadius:C.radiusXs,background:C.warningBg}}>
+                  <div style={{fontSize:13,fontWeight:700,color:C.text}}>{p.nome}</div>
+                  <div style={{fontSize:11,color:C.textSec,margin:"2px 0 10px"}}>
+                    {p.id} · {p.equipe} · {p.motivo}
+                  </div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    <Btn variant="success" size="sm" onClick={()=>onAdmitir(p)}>✅ Admitir</Btn>
+                    <div style={{display:"flex",gap:6,alignItems:"center",flex:1,minWidth:200}}>
+                      <input value={motivoNeg[p.id]||""} placeholder="Motivo da negativa..."
+                        onChange={e=>setMotivoNeg(prev=>({...prev,[p.id]:e.target.value}))}
+                        style={{flex:1,padding:"5px 10px",borderRadius:C.radiusXs,border:`1px solid ${C.border}`,fontSize:12}}/>
+                      <Btn variant="secondary" size="sm" onClick={()=>{
+                        if (!motivoNeg[p.id]) return;
+                        onNegativa(p,motivoNeg[p.id]);
+                      }}>❌ Não Elegível</Btn>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card style={{padding:20}}>
+            <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 16px"}}>
+              Histórico de Negativas ({negativas.length})
+            </h3>
+            {negativas.length===0&&<p style={{color:C.textMuted,fontSize:13}}>Nenhuma negativa registrada.</p>}
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {negativas.map(p=>(
+                <div key={p.id} style={{padding:"10px 14px",border:`1px solid ${C.neutralBd}`,
+                  borderRadius:C.radiusXs,background:C.neutralBg,fontSize:12}}>
+                  <div style={{fontWeight:700,color:C.text}}>{p.nome} <Badge status="negativa"/></div>
+                  <div style={{color:C.textSec,marginTop:2}}>{p.motivo}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      );
+    };
+
+    // ── Censo Diário ──────────────────────────────────────────────────
+    const CensoDiario = ({pacientes,equipe,role,equipesList}) => {
+      const [equipeSel,setEquipeSel]= useState(equipe||"Equipe 01");
+      const [motoristas,setMotoristas]= useState("");
+      const [intercorrencias,setIntercorrencias]= useState("");
+      const [visitasMed,setVisitasMed]= useState("");
+      const [visitasEnf,setVisitasEnf]= useState("");
+      const [saved,setSaved]= useState(false);
+
+      const ativos = pacientes.filter(p=>p.status==="ativo"&&p.equipe===equipeSel);
+      const resDisps = DISPS_KEYS.reduce((acc,k)=>({...acc,[k]:ativos.filter(p=>p[k]).length}),{});
+
+      const handleSalvar = ()=>{
+        setSaved(true); setTimeout(()=>setSaved(false),3000);
+      };
+
+      return (
+        <div style={{padding:24,display:"flex",flexDirection:"column",gap:20,maxWidth:760}}>
+          <div>
+            <h2 style={{fontSize:20,fontWeight:800,color:C.text,margin:0}}>Censo Diário</h2>
+            <p style={{color:C.textSec,margin:"4px 0 0",fontSize:13}}>{new Date().toLocaleDateString("pt-BR",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</p>
+          </div>
+
+          {role==="coordenacao"&&(
+            <Select label="Equipe" value={equipeSel} onChange={setEquipeSel} options={equipesList}/>
+          )}
+
+          <Card style={{padding:20}}>
+            <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 16px"}}>
+              Resumo Automático — {equipeSel}
+            </h3>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+              <div style={{padding:"12px",background:C.primaryLt,borderRadius:C.radiusXs}}>
+                <div style={{fontSize:11,color:C.primary,fontWeight:600}}>Pacientes Ativos</div>
+                <div style={{fontSize:24,fontWeight:800,color:C.primary}}>{ativos.length}</div>
+              </div>
+              <div style={{padding:"12px",background:C.successBg,borderRadius:C.radiusXs}}>
+                <div style={{fontSize:11,color:C.success,fontWeight:600}}>Total Dispositivos</div>
+                <div style={{fontSize:24,fontWeight:800,color:C.success}}>
+                  {Object.values(resDisps).reduce((s,v)=>s+v,0)}
+                </div>
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              {DISPS_KEYS.map(k=>(
+                <div key={k} style={{display:"flex",justifyContent:"space-between",
+                  padding:"6px 10px",background:resDisps[k]>0?C.primaryLt:C.neutralBg,
+                  borderRadius:C.radiusXs,border:`1px solid ${resDisps[k]>0?C.primary+"30":C.border}`}}>
+                  <span style={{fontSize:12,color:resDisps[k]>0?C.primary:C.textMuted}}>
+                    {DISPS_ICONS[k]} {DISPS_LABELS[k]}
+                  </span>
+                  <span style={{fontSize:12,fontWeight:700,color:resDisps[k]>0?C.primary:C.textMuted}}>
+                    {resDisps[k]}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card style={{padding:20}}>
+            <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 16px"}}>Entradas do Dia</h3>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+              <Input label="Motoristas em Plantão" value={motoristas} onChange={setMotoristas}
+                placeholder="Ex: 3" type="number"/>
+              <Input label="Intercorrências" value={intercorrencias} onChange={setIntercorrencias}
+                placeholder="Ex: 1"/>
+              <Input label="Visitas Médicas" value={visitasMed} onChange={setVisitasMed}
+                placeholder="Ex: 8" type="number"/>
+              <Input label="Visitas Enf./Aux." value={visitasEnf} onChange={setVisitasEnf}
+                placeholder="Ex: 15" type="number"/>
+            </div>
+            <div style={{marginTop:16,display:"flex",gap:10,alignItems:"center"}}>
+              <Btn onClick={handleSalvar} size="lg">💾 Salvar Censo</Btn>
+              {saved&&<span style={{fontSize:13,color:C.success,fontWeight:600}}>✓ Censo salvo!</span>}
+            </div>
+          </Card>
+        </div>
+      );
+    };
+
+    // ── Painel de 22 Equipes (Coordenação) ───────────────────────────
+    const CoordEquipes = ({pacientes,onSelectEquipe}) => {
+      const mediaATB = EQUIPE_STATS.reduce((s,e)=>s+e.ATB,0)/22;
+      return (
+        <div style={{padding:24}}>
+          <h2 style={{fontSize:20,fontWeight:800,color:C.text,margin:"0 0 4px"}}>22 Equipes — Detalhado</h2>
+          <p style={{color:C.textSec,fontSize:13,margin:"0 0 20px"}}>Clique em uma equipe para detalhar pacientes</p>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <thead>
+                <tr style={{background:C.surfaceAlt}}>
+                  {["Equipe","Ativos","Em Aval.","SVD","O₂","SNE","GTT","ATB","Curativo","Motoristas","Status"].map(h=>(
+                    <th key={h} style={{padding:"10px 12px",textAlign:"left",fontWeight:700,
+                      color:C.textSec,borderBottom:`2px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {EQUIPE_STATS.map((e,i)=>{
+                  const ratio = mediaATB>0?e.ATB/mediaATB:1;
+                  const alert = ratio>=1.3;
+                  return (
+                    <tr key={e.nome} onClick={()=>onSelectEquipe(e.nome)}
+                      style={{borderBottom:`1px solid ${C.border}`,cursor:"pointer",
+                        background:i%2===0?C.surface:C.surfaceAlt,
+                        transition:"background 0.1s"}}>
+                      <td style={{padding:"10px 12px",fontWeight:700,color:C.primary}}>{e.nome}</td>
+                      <td style={{padding:"10px 12px",fontWeight:600}}>{e.ativos}</td>
+                      <td style={{padding:"10px 12px",color:e.avaliados>0?C.warning:C.textMuted}}>{e.avaliados}</td>
+                      <td style={{padding:"10px 12px"}}>{e.SVD}</td>
+                      <td style={{padding:"10px 12px"}}>{e.O2}</td>
+                      <td style={{padding:"10px 12px"}}>—</td>
+                      <td style={{padding:"10px 12px"}}>—</td>
+                      <td style={{padding:"10px 12px",fontWeight:alert?700:400,
+                        color:alert?C.danger:C.text}}>{e.ATB}</td>
+                      <td style={{padding:"10px 12px"}}>{e.CurativoEsp}</td>
+                      <td style={{padding:"10px 12px"}}>{e.motoristas}</td>
+                      <td style={{padding:"10px 12px"}}>
+                        {alert
+                          ?<span style={{fontSize:10,padding:"2px 8px",borderRadius:12,background:C.dangerBg,color:C.danger,fontWeight:700}}>⚠ ALERTA ATB</span>
+                          :<span style={{fontSize:10,padding:"2px 8px",borderRadius:12,background:C.successBg,color:C.success,fontWeight:700}}>✓ Normal</span>
+                        }
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    };
+
+    // ── App principal ─────────────────────────────────────────────────
+    function App() {
+      const [user,setUser]           = useState(null);
+      const [role,setRole]           = useState(null);
+      const [page,setPage]           = useState(null);
+      const [pacientes,setPacientes] = useState(PACIENTES_MOCK);
+
+      const equipe = useMemo(()=>{
+        if (!user) return null;
+        const local = user.split("@")[0];
+        const match = EQUIPES_LIST.find(e=>e.toLowerCase().replace(/\s/g,"")===local);
+        return match || "Equipe 01";
+      },[user]);
+
+      const handleLogin = (email,r) => {
+        setUser(email); setRole(r);
+        setPage(r==="coordenacao"?"coord_dash":"dashboard");
+      };
+      const handleLogout = () => { setUser(null); setRole(null); setPage(null); };
+
+      const handleAdmitir = useCallback((p)=>{
+        setPacientes(prev=>prev.map(x=>x.id===p.id?{...x,status:"ativo",
+          admissao:new Date().toLocaleDateString("pt-BR")}:x));
+      },[]);
+
+      const handleNegativa = useCallback((p,motivo)=>{
+        setPacientes(prev=>prev.map(x=>x.id===p.id?{...x,status:"negativa",motivo}:x));
+      },[]);
+
+      const handleRegistrar = useCallback((dados)=>{
+        setPacientes(prev=>[...prev,{...dados,perfil:"",complexidade:0,cid:"",admissao:"",
+          ...Object.fromEntries(DISPS_KEYS.map(k=>[k,false]))}]);
+      },[]);
+
+      const handleNovoPaciente = useCallback((dados)=>{
+        setPacientes(prev=>[...prev,{...dados,complexidade:parseInt(dados.complexidade)||1}]);
+      },[]);
+
+      if (!user) return <LoginView onLogin={handleLogin}/>;
+
+      const renderPage = () => {
+        switch(page){
+          case "dashboard":    return <DashboardEquipe pacientes={pacientes} equipe={equipe}/>;
+          case "coord_dash":   return <DashboardCoordenacao pacientes={pacientes}
+                                 onSelectEquipe={e=>setPage("pacientes")}/>;
+          case "coord_equipes":return <CoordEquipes pacientes={pacientes}
+                                 onSelectEquipe={e=>setPage("pacientes")}/>;
+          case "pacientes":    return <PacientesList pacientes={pacientes} equipe={equipe}
+                                 role={role} onAdmitir={handleAdmitir} onNegativa={handleNegativa}/>;
+          case "admissao":     return <AdmissaoForm equipeDefault={equipe} role={role}
+                                 onSave={handleNovoPaciente}/>;
+          case "busca_ativa":  return <BuscaAtiva equipeDefault={equipe} pacientes={pacientes}
+                                 role={role} onRegistrar={handleRegistrar}
+                                 onAdmitir={handleAdmitir} onNegativa={handleNegativa}/>;
+          case "censo":        return <CensoDiario pacientes={pacientes} equipe={equipe}
+                                 role={role} equipesList={EQUIPES_LIST}/>;
+          default:             return <div style={{padding:32,color:C.textMuted}}>Selecione uma opção no menu.</div>;
+        }
+      };
+
+      return (
+        <div style={{display:"flex",minHeight:"100vh",background:C.bg,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
+          <Sidebar role={role} page={page} setPage={setPage} user={user} onLogout={handleLogout}/>
+          <main style={{flex:1,overflowY:"auto",maxHeight:"100vh"}}>
+            {renderPage()}
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>
