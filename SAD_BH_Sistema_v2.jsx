@@ -6,8 +6,8 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 // ╚══════════════════════════════════════════════════════════════════╝
 
 // ── Configuração de produção ──────────────────────────────────────
-const API_URL = "https://script.google.com/macros/s/SEU_DEPLOYMENT_ID/exec";
-const DOMINIOS_VALIDOS = ["smsa.belo-horizonte.mg.gov.br","saude.mg.gov.br","demo.sad"];
+const API_URL = "https://script.google.com/macros/s/AKfycbzNY8zQ5JwOJRLbg1KCns67_r7nnBYQ6vkLHeNWLdmyIdDQr_SyClF9zPcWW-sqCDwWFw/exec";
+const DOMINIOS_VALIDOS = ["smsa.belo-horizonte.mg.gov.br","saude.mg.gov.br", "pbh.gov.br"];
 
 // ── Design Tokens ─────────────────────────────────────────────────
 const C = {
