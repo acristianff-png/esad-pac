@@ -4,17 +4,18 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SAD·BH — Sistema de Gestão Assistencial</title>
-  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Alexandria','Segoe UI',system-ui,sans-serif;font-weight:300}
-    button:focus-visible{outline:2px solid #00cf00;outline-offset:2px}
+    body{font-family:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;font-weight:400}
+    button:focus-visible{outline:2px solid #14B8A6;outline-offset:2px}
     ::-webkit-scrollbar{width:5px;height:5px}
-    ::-webkit-scrollbar-thumb{background:#bbb;border-radius:3px}
-    .bold900{font-weight:900}
+    ::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+    ::-webkit-scrollbar-track{background:#F1F5F9}
+    .bold900{font-weight:800}
   </style>
 </head>
 <body>
@@ -26,23 +27,23 @@ const {useState,useMemo,useCallback,useRef} = React;
    DESIGN TOKENS — Identidade SAD-BH
 ══════════════════════════════════════════════════════ */
 const C = {
-  bg:"#F2F9F2", surface:"#FFFFFF", surfaceAlt:"#F7FBF7",
-  nav:"#000000", navHov:"#1a1a1a", navAccent:"#00cf00",
-  navText:"#888888", navTextOn:"#FFFFFF",
-  primary:"#00cf00", primaryDk:"#009e00", primaryLt:"#E6FFE6",
-  orange:"#ff7d00", orangeBg:"#FFF1E6", orangeBd:"#FFB066",
-  yellow:"#ffcf00", yellowBg:"#FFFDE6",
-  brown:"#823d00", brownLt:"#bc6a2e",
-  blue:"#243dfc", blueBg:"#EEEEFF", blueBd:"#99AAFF",
-  success:"#00cf00", successBg:"#E6FFE6", successBd:"#66DD66",
-  warning:"#ff7d00", warningBg:"#FFF1E6", warningBd:"#FFB066",
-  danger:"#CC2200", dangerBg:"#FFEEEE", dangerBd:"#FF8888",
-  neutral:"#666", neutralBg:"#F3F4F6", neutralBd:"#DDDDDD",
-  text:"#000000", textSec:"#333333", textMuted:"#888888",
-  border:"#D8E8D8",
-  shadow:"0 1px 4px rgba(0,0,0,0.08)",
-  shadowMd:"0 4px 12px rgba(0,0,0,0.10)",
-  radius:"10px", radiusSm:"7px", radiusXs:"5px",
+  bg:"#F0F9FF", surface:"#FFFFFF", surfaceAlt:"#F8FBFE",
+  nav:"#0F766E", navHov:"#0D9488", navAccent:"#FFFFFF",
+  navText:"rgba(255,255,255,0.55)", navTextOn:"#FFFFFF",
+  primary:"#14B8A6", primaryDk:"#0D9488", primaryLt:"#F0FDFA",
+  orange:"#F59E0B", orangeBg:"#FEF3C7", orangeBd:"#FCD34D",
+  yellow:"#FDE68A", yellowBg:"#FFFBEB",
+  brown:"#92400E", brownLt:"#B45309",
+  blue:"#3B82F6", blueBg:"#EFF6FF", blueBd:"#93C5FD",
+  success:"#10B981", successBg:"#ECFDF5", successBd:"#6EE7B7",
+  warning:"#F59E0B", warningBg:"#FFFBEB", warningBd:"#FCD34D",
+  danger:"#EF4444", dangerBg:"#FEF2F2", dangerBd:"#FCA5A5",
+  neutral:"#64748B", neutralBg:"#F1F5F9", neutralBd:"#E2E8F0",
+  text:"#0F172A", textSec:"#334155", textMuted:"#94A3B8",
+  border:"#E2E8F0",
+  shadow:"0 1px 3px rgba(0,0,0,0.05),0 1px 2px rgba(0,0,0,0.03)",
+  shadowMd:"0 4px 16px rgba(20,184,166,0.10),0 2px 6px rgba(0,0,0,0.04)",
+  radius:"16px", radiusSm:"12px", radiusXs:"8px",
 };
 
 /* ══════════════════════════════════════════════════════
@@ -178,18 +179,18 @@ const DISPS_ICONS = {
 };
 
 const STATUS_MAP = {
-  ativo:         {c:"#006600",bg:"#E6FFE6",bd:"#66DD66",label:"Ativo"},
-  avaliacao:     {c:"#994400",bg:"#FFF1E6",bd:"#FFB066",label:"Em Avaliação"},
-  alta:          {c:"#243dfc",bg:"#EEEEFF",bd:"#99AAFF",label:"Alta"},
-  negativa:      {c:"#555",bg:"#F3F4F6",bd:"#AAAAAA",label:"Não Elegível"},
-  obito:         {c:"#880000",bg:"#FFEEEE",bd:"#FF8888",label:"Óbito"},
-  transferencia: {c:"#823d00",bg:"#FFF3E6",bd:"#bc6a2e",label:"Em Transferência"},
+  ativo:         {c:"#065F46",bg:"#ECFDF5",bd:"#6EE7B7",label:"Ativo"},
+  avaliacao:     {c:"#92400E",bg:"#FEF3C7",bd:"#FCD34D",label:"Em Avaliação"},
+  alta:          {c:"#1D4ED8",bg:"#EFF6FF",bd:"#93C5FD",label:"Alta"},
+  negativa:      {c:"#475569",bg:"#F1F5F9",bd:"#CBD5E1",label:"Não Elegível"},
+  obito:         {c:"#991B1B",bg:"#FEF2F2",bd:"#FCA5A5",label:"Óbito"},
+  transferencia: {c:"#92400E",bg:"#FEF3C7",bd:"#FCD34D",label:"Em Transferência"},
 };
 
 const AD_COLORS = {
-  AD1:{c:"#006600",bg:"#E6FFE6",bd:"#66DD66"},
-  AD2:{c:"#994400",bg:"#FFF1E6",bd:"#FFB066"},
-  AD3:{c:"#880000",bg:"#FFEEEE",bd:"#FF8888"},
+  AD1:{c:"#065F46",bg:"#ECFDF5",bd:"#6EE7B7"},
+  AD2:{c:"#92400E",bg:"#FEF3C7",bd:"#FCD34D"},
+  AD3:{c:"#991B1B",bg:"#FEF2F2",bd:"#FCA5A5"},
 };
 
 const EQUIPE_STATS = EQUIPES_LIST.map((nome,i)=>({
@@ -324,7 +325,7 @@ const Card=({children,style={}})=>(
 
 const Badge=({status})=>{
   const s=STATUS_MAP[status]||STATUS_MAP.ativo;
-  return <span style={{display:"inline-flex",alignItems:"center",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:900,letterSpacing:"0.03em",color:s.c,background:s.bg,border:`1px solid ${s.bd}`}}>{s.label}</span>;
+  return <span style={{display:"inline-flex",alignItems:"center",padding:"3px 10px",borderRadius:999,fontSize:11,fontWeight:700,letterSpacing:"0.03em",color:s.c,background:s.bg,border:`1px solid ${s.bd}`}}>{s.label}</span>;
 };
 
 const AdBadge=({val})=>{
@@ -334,18 +335,18 @@ const AdBadge=({val})=>{
 };
 
 const Btn=({children,onClick,variant="primary",size="md",disabled=false,style={}})=>{
-  const pad=size==="sm"?{padding:"5px 11px",fontSize:12}:size==="lg"?{padding:"10px 22px",fontSize:15}:{padding:"8px 15px",fontSize:13};
+  const pad=size==="sm"?{padding:"5px 13px",fontSize:12}:size==="lg"?{padding:"11px 24px",fontSize:15}:{padding:"8px 17px",fontSize:13};
   const vars={
-    primary:{background:C.primary,color:"#000",fontWeight:900},
-    secondary:{background:C.neutralBg,color:C.text,border:`1px solid ${C.border}`},
-    success:{background:C.success,color:"#000",fontWeight:900},
-    danger:{background:C.danger,color:"#fff",fontWeight:900},
-    orange:{background:C.orange,color:"#000",fontWeight:900},
-    ghost:{background:"transparent",color:C.primary,fontWeight:900},
+    primary:{background:C.primary,color:"#fff",fontWeight:700},
+    secondary:{background:C.surface,color:C.textSec,border:`1px solid ${C.border}`},
+    success:{background:C.success,color:"#fff",fontWeight:700},
+    danger:{background:C.danger,color:"#fff",fontWeight:700},
+    orange:{background:C.orange,color:"#fff",fontWeight:700},
+    ghost:{background:"transparent",color:C.primary,fontWeight:700},
   };
   return (
     <button onClick={disabled?undefined:onClick}
-      style={{cursor:disabled?"not-allowed":"pointer",border:"none",borderRadius:C.radiusSm,
+      style={{cursor:disabled?"not-allowed":"pointer",border:"none",borderRadius:"999px",
         fontFamily:"inherit",transition:"all 0.15s",display:"inline-flex",alignItems:"center",gap:6,
         opacity:disabled?0.5:1,...pad,...vars[variant],...style}}>
       {children}
@@ -365,11 +366,11 @@ const Input=({label,value,onChange,placeholder,mask,type="text",required,error,h
   };
   return (
     <div style={{display:"flex",flexDirection:"column",gap:3,...style}}>
-      {label&&<label style={{fontSize:11,fontWeight:900,color:error?C.danger:C.textMuted,letterSpacing:"0.04em",textTransform:"uppercase"}}>{label}{required&&<span style={{color:C.danger}}> *</span>}</label>}
+      {label&&<label style={{fontSize:11,fontWeight:600,color:error?C.danger:C.textMuted,letterSpacing:"0.04em",textTransform:"uppercase"}}>{label}{required&&<span style={{color:C.danger}}> *</span>}</label>}
       <input type={type} value={value} onChange={handle} placeholder={placeholder} disabled={disabled}
-        style={{padding:"8px 11px",borderRadius:C.radiusXs,border:`1.5px solid ${error?C.danger:C.border}`,
+        style={{padding:"9px 12px",borderRadius:C.radiusXs,border:`1.5px solid ${error?C.danger:C.border}`,
           background:disabled?C.surfaceAlt:C.surface,color:C.text,fontSize:13,fontFamily:"inherit",
-          fontWeight:300,outline:"none",width:"100%",boxSizing:"border-box"}}/>
+          fontWeight:400,outline:"none",width:"100%",boxSizing:"border-box",transition:"border-color 0.15s"}}/>
       {(error||hint)&&<span style={{fontSize:11,color:error?C.danger:C.textMuted}}>{error||hint}</span>}
     </div>
   );
@@ -377,11 +378,11 @@ const Input=({label,value,onChange,placeholder,mask,type="text",required,error,h
 
 const Select=({label,value,onChange,options,required,disabled,placeholder})=>(
   <div style={{display:"flex",flexDirection:"column",gap:3}}>
-    {label&&<label style={{fontSize:11,fontWeight:900,color:C.textMuted,letterSpacing:"0.04em",textTransform:"uppercase"}}>{label}{required&&<span style={{color:C.danger}}> *</span>}</label>}
+    {label&&<label style={{fontSize:11,fontWeight:600,color:C.textMuted,letterSpacing:"0.04em",textTransform:"uppercase"}}>{label}{required&&<span style={{color:C.danger}}> *</span>}</label>}
     <select value={value} onChange={e=>onChange(e.target.value)} disabled={disabled}
-      style={{padding:"8px 11px",borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,
+      style={{padding:"9px 12px",borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,
         background:disabled?C.surfaceAlt:C.surface,color:value?""+C.text:C.textMuted,
-        fontSize:13,fontFamily:"inherit",fontWeight:300,outline:"none",width:"100%"}}>
+        fontSize:13,fontFamily:"inherit",fontWeight:400,outline:"none",width:"100%",transition:"border-color 0.15s"}}>
       {placeholder&&<option value="">{placeholder}</option>}
       {options.map(o=><option key={o.value||o} value={o.value||o}>{o.label||o}</option>)}
     </select>
@@ -394,7 +395,7 @@ const Toggle=({label,icon,checked,onChange})=>(
     background:checked?C.primaryLt:C.surface,cursor:"pointer",transition:"all 0.15s",userSelect:"none"}}>
     <input type="checkbox" checked={checked} onChange={e=>onChange(e.target.checked)}
       style={{accentColor:C.primary,width:14,height:14}}/>
-    <span style={{fontSize:12,fontWeight:checked?900:300,color:checked?C.primaryDk:C.textSec}}>{icon} {label}</span>
+    <span style={{fontSize:12,fontWeight:checked?700:400,color:checked?C.primaryDk:C.textSec}}>{icon} {label}</span>
   </label>
 );
 
@@ -410,8 +411,8 @@ const KPI=({label,value,sub,color,icon,delta})=>(
   <Card style={{padding:"16px 18px",flex:1,minWidth:130}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
       <div>
-        <div style={{fontSize:10,fontWeight:900,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>{label}</div>
-        <div style={{fontSize:26,fontWeight:900,color:color||C.text,lineHeight:1}}>{value}</div>
+        <div style={{fontSize:10,fontWeight:600,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>{label}</div>
+        <div style={{fontSize:26,fontWeight:800,color:color||C.text,lineHeight:1}}>{value}</div>
         {sub&&<div style={{fontSize:11,color:C.textMuted,marginTop:3}}>{sub}</div>}
         {delta!==undefined&&(
           <div style={{fontSize:11,fontWeight:900,color:delta>=0?C.success:C.danger,marginTop:2}}>
@@ -567,39 +568,39 @@ const MENUS = {
 const Sidebar=({role,page,setPage,user,onLogout})=>{
   const items=MENUS[role]||[];
   return (
-    <nav style={{width:215,background:C.nav,display:"flex",flexDirection:"column",height:"100vh",position:"sticky",top:0,flexShrink:0}}>
-      <div style={{padding:"22px 18px 14px",borderBottom:"1px solid #222"}}>
-        <div style={{fontSize:18,fontWeight:900,color:C.navAccent,letterSpacing:"-0.02em",fontFamily:"'Alexandria',sans-serif"}}>SAD·BH</div>
-        <div style={{fontSize:9,color:"#555",marginTop:1,letterSpacing:"0.1em",textTransform:"uppercase"}}>Gestão Assistencial</div>
+    <nav style={{width:220,background:C.nav,display:"flex",flexDirection:"column",height:"100vh",position:"sticky",top:0,flexShrink:0}}>
+      <div style={{padding:"24px 20px 16px",borderBottom:"1px solid rgba(255,255,255,0.1)"}}>
+        <div style={{fontSize:20,fontWeight:800,color:C.navAccent,letterSpacing:"-0.03em"}}>SAD·BH</div>
+        <div style={{fontSize:9,color:"rgba(255,255,255,0.4)",marginTop:2,letterSpacing:"0.12em",textTransform:"uppercase"}}>Gestão Assistencial</div>
       </div>
-      <div style={{flex:1,padding:"10px 8px",overflowY:"auto"}}>
+      <div style={{flex:1,padding:"12px 10px",overflowY:"auto"}}>
         {items.map(item=>{
           const on=page===item.id;
           return (
             <button key={item.id} onClick={()=>setPage(item.id)}
-              style={{display:"flex",alignItems:"center",gap:9,width:"100%",padding:"9px 11px",
-                borderRadius:C.radiusSm,border:"none",cursor:"pointer",marginBottom:2,
-                background:on?"#1a1a1a":"transparent",
-                borderLeft:on?`3px solid ${C.navAccent}`:"3px solid transparent",
-                color:on?"#fff":C.navText,fontSize:12,fontWeight:on?900:300,
+              style={{display:"flex",alignItems:"center",gap:9,width:"100%",padding:"10px 12px",
+                borderRadius:C.radiusXs,border:"none",cursor:"pointer",marginBottom:2,
+                background:on?"rgba(255,255,255,0.12)":"transparent",
+                borderLeft:on?"3px solid rgba(255,255,255,0.9)":"3px solid transparent",
+                color:on?C.navTextOn:C.navText,fontSize:12,fontWeight:on?700:400,
                 fontFamily:"inherit",transition:"all 0.12s",textAlign:"left"}}>
               <span style={{fontSize:14}}>{item.icon}</span>{item.label}
             </button>
           );
         })}
       </div>
-      <div style={{padding:"12px 15px",borderTop:"1px solid #222"}}>
-        <div style={{fontSize:10,color:"#555",marginBottom:1}}>Logado como</div>
-        <div style={{fontSize:11,color:"#fff",fontWeight:900,marginBottom:6,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user}</div>
-        <span style={{display:"inline-block",padding:"2px 8px",borderRadius:10,
-          background:role==="coordenacao"?"#243dfc22":"#00cf0022",
-          border:`1px solid ${role==="coordenacao"?C.blue:C.primary}`,
-          fontSize:9,fontWeight:900,color:role==="coordenacao"?"#99AAFF":C.navAccent,
-          textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8}}>
+      <div style={{padding:"14px 16px",borderTop:"1px solid rgba(255,255,255,0.1)"}}>
+        <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",marginBottom:2}}>Logado como</div>
+        <div style={{fontSize:11,color:"rgba(255,255,255,0.9)",fontWeight:600,marginBottom:7,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user}</div>
+        <span style={{display:"inline-block",padding:"2px 9px",borderRadius:999,
+          background:"rgba(255,255,255,0.15)",
+          border:"1px solid rgba(255,255,255,0.25)",
+          fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.9)",
+          textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:9}}>
           {role==="coordenacao"?"Coordenação":"Equipe"}
         </span>
         <button onClick={onLogout} style={{display:"flex",alignItems:"center",gap:5,
-          background:"transparent",border:"none",color:"#555",fontSize:11,cursor:"pointer",padding:0,fontFamily:"inherit"}}>
+          background:"transparent",border:"none",color:"rgba(255,255,255,0.45)",fontSize:11,cursor:"pointer",padding:0,fontFamily:"inherit",transition:"color 0.12s"}}>
           ← Sair
         </button>
       </div>
@@ -619,24 +620,26 @@ const LoginView=({onLogin})=>{
     onLogin(email,/coord|chefia|gestao/i.test(email)?"coordenacao":"equipe");
   };
   return (
-    <div style={{minHeight:"100vh",background:`linear-gradient(135deg,#000 0%,#1a1a1a 60%,#00cf0022 100%)`,
-      display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <Card style={{width:380,padding:40}}>
-        <div style={{textAlign:"center",marginBottom:30}}>
-          <div style={{fontSize:40,marginBottom:8}}>🏥</div>
-          <div style={{fontSize:24,fontWeight:900,color:C.text,letterSpacing:"-0.02em",fontFamily:"'Alexandria',sans-serif"}}>SAD·BH</div>
-          <div style={{fontSize:13,color:C.textSec,marginTop:3}}>Serviço de Atenção Domiciliar</div>
-          <div style={{fontSize:11,color:C.textMuted}}>Secretaria Municipal de Saúde · BH</div>
+    <div style={{minHeight:"100vh",background:`linear-gradient(145deg,#0F766E 0%,#134E4A 55%,#1E3A5F 100%)`,
+      display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{width:"100%",maxWidth:400}}>
+        <div style={{textAlign:"center",marginBottom:28}}>
+          <div style={{fontSize:36,marginBottom:10}}>🏥</div>
+          <div style={{fontSize:26,fontWeight:800,color:"#ffffff",letterSpacing:"-0.03em"}}>SAD·BH</div>
+          <div style={{fontSize:13,color:"rgba(255,255,255,0.65)",marginTop:4}}>Serviço de Atenção Domiciliar</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginTop:2}}>Secretaria Municipal de Saúde · BH</div>
         </div>
-        <div style={{marginBottom:14}}>
-          <Input label="E-mail institucional" value={email} onChange={setEmail}
-            placeholder="usuario@smsa.belo-horizonte.mg.gov.br" error={err} required/>
-        </div>
-        <Btn onClick={handle} size="lg" style={{width:"100%",justifyContent:"center"}}>Entrar no Sistema</Btn>
-        <div style={{marginTop:18,padding:"10px 13px",background:C.primaryLt,borderRadius:C.radiusXs,fontSize:11,color:C.primaryDk}}>
-          <strong>Demo:</strong> equipe@demo.sad · coord@demo.sad
-        </div>
-      </Card>
+        <Card style={{padding:36,boxShadow:"0 24px 48px rgba(0,0,0,0.25)"}}>
+          <div style={{marginBottom:16}}>
+            <Input label="E-mail institucional" value={email} onChange={setEmail}
+              placeholder="usuario@smsa.belo-horizonte.mg.gov.br" error={err} required/>
+          </div>
+          <Btn onClick={handle} size="lg" style={{width:"100%",justifyContent:"center"}}>Entrar no Sistema</Btn>
+          <div style={{marginTop:16,padding:"10px 13px",background:C.primaryLt,borderRadius:C.radiusXs,fontSize:11,color:C.primaryDk}}>
+            <strong>Demo:</strong> equipe@demo.sad · coord@demo.sad
+          </div>
+        </Card>
+      </div>
     </div>
   );
 };
@@ -1430,7 +1433,7 @@ function App(){
   };
 
   return (
-    <div style={{display:"flex",minHeight:"100vh",background:C.bg,fontFamily:"'Alexandria','Segoe UI',system-ui,sans-serif",fontWeight:300}}>
+    <div style={{display:"flex",minHeight:"100vh",background:C.bg,fontFamily:"'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif",fontWeight:400}}>
       <Sidebar role={role} page={page} setPage={setPage} user={user} onLogout={handleLogout}/>
       <main style={{flex:1,overflowY:"auto",maxHeight:"100vh"}}>{render()}</main>
     </div>
