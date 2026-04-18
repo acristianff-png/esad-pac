@@ -4,1082 +4,1440 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SAD·BH — Sistema de Gestão Assistencial</title>
+  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;900&display=swap" rel="stylesheet"/>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; }
-    button:focus-visible { outline: 2px solid #3E92CC; outline-offset: 2px; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Alexandria','Segoe UI',system-ui,sans-serif;font-weight:300}
+    button:focus-visible{outline:2px solid #00cf00;outline-offset:2px}
+    ::-webkit-scrollbar{width:5px;height:5px}
+    ::-webkit-scrollbar-thumb{background:#bbb;border-radius:3px}
+    .bold900{font-weight:900}
   </style>
 </head>
 <body>
-  <div id="root"></div>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useMemo,useCallback,useRef} = React;
 
-  <script type="text/babel">
-    const { useState, useMemo, useCallback, useEffect } = React;
+/* ══════════════════════════════════════════════════════
+   DESIGN TOKENS — Identidade SAD-BH
+══════════════════════════════════════════════════════ */
+const C = {
+  bg:"#F2F9F2", surface:"#FFFFFF", surfaceAlt:"#F7FBF7",
+  nav:"#000000", navHov:"#1a1a1a", navAccent:"#00cf00",
+  navText:"#888888", navTextOn:"#FFFFFF",
+  primary:"#00cf00", primaryDk:"#009e00", primaryLt:"#E6FFE6",
+  orange:"#ff7d00", orangeBg:"#FFF1E6", orangeBd:"#FFB066",
+  yellow:"#ffcf00", yellowBg:"#FFFDE6",
+  brown:"#823d00", brownLt:"#bc6a2e",
+  blue:"#243dfc", blueBg:"#EEEEFF", blueBd:"#99AAFF",
+  success:"#00cf00", successBg:"#E6FFE6", successBd:"#66DD66",
+  warning:"#ff7d00", warningBg:"#FFF1E6", warningBd:"#FFB066",
+  danger:"#CC2200", dangerBg:"#FFEEEE", dangerBd:"#FF8888",
+  neutral:"#666", neutralBg:"#F3F4F6", neutralBd:"#DDDDDD",
+  text:"#000000", textSec:"#333333", textMuted:"#888888",
+  border:"#D8E8D8",
+  shadow:"0 1px 4px rgba(0,0,0,0.08)",
+  shadowMd:"0 4px 12px rgba(0,0,0,0.10)",
+  radius:"10px", radiusSm:"7px", radiusXs:"5px",
+};
 
-    // ╔══════════════════════════════════════════════════════════════════╗
-    //  SAD-BH · Sistema de Gestão Assistencial  v2.0
-    //  Stack: React · Google Apps Script · Google Sheets
-    // ╚══════════════════════════════════════════════════════════════════╝
+/* ══════════════════════════════════════════════════════
+   LISTAS ESTÁTICAS
+══════════════════════════════════════════════════════ */
+const DOMINIOS_VALIDOS = ["smsa.belo-horizonte.mg.gov.br","saude.mg.gov.br","pbh.gov.br","demo.sad"];
+const API_URL = "https://script.google.com/macros/s/AKfycbzNY8zQ5JwOJRLbg1KCns67_r7nnBYQ6vkLHeNWLdmyIdDQr_SyClF9zPcWW-sqCDwWFw/exec";
 
-    // ── Configuração de produção ──────────────────────────────────────
-    const API_URL = "https://script.google.com/macros/s/AKfycbzNY8zQ5JwOJRLbg1KCns67_r7nnBYQ6vkLHeNWLdmyIdDQr_SyClF9zPcWW-sqCDwWFw/exec";
-    const DOMINIOS_VALIDOS = ["smsa.belo-horizonte.mg.gov.br","saude.mg.gov.br","pbh.gov.br","demo.sad"];
+const EQUIPES_LIST = Array.from({length:22},(_,i)=>`Equipe ${String(i+1).padStart(2,"0")}`);
 
-    // ── Design Tokens ─────────────────────────────────────────────────
-    const C = {
-      bg:          "#F0F5FB",
-      surface:     "#FFFFFF",
-      surfaceAlt:  "#F7FAFC",
-      nav:         "#0B2545",
-      navActive:   "#13315C",
-      navAccent:   "#3E92CC",
-      navText:     "#8EAFD4",
-      navTextHov:  "#C8DDF2",
-      primary:     "#1A6FAD",
-      primaryHov:  "#155A8E",
-      primaryLt:   "#E8F3FC",
-      success:     "#15803D",
-      successBg:   "#DCFCE7",
-      successBd:   "#86EFAC",
-      warning:     "#B45309",
-      warningBg:   "#FEF3C7",
-      warningBd:   "#FCD34D",
-      danger:      "#DC2626",
-      dangerBg:    "#FEE2E2",
-      dangerBd:    "#FCA5A5",
-      info:        "#1D4ED8",
-      infoBg:      "#DBEAFE",
-      neutral:     "#6B7280",
-      neutralBg:   "#F3F4F6",
-      neutralBd:   "#E5E7EB",
-      text:        "#111827",
-      textSec:     "#4B5563",
-      textMuted:   "#9CA3AF",
-      border:      "#E2E8F0",
-      borderHov:   "#CBD5E1",
-      shadow:      "0 1px 3px rgba(0,0,0,0.07),0 1px 2px rgba(0,0,0,0.05)",
-      shadowMd:    "0 4px 6px rgba(0,0,0,0.07),0 2px 4px rgba(0,0,0,0.05)",
-      shadowLg:    "0 10px 25px rgba(0,0,0,0.08),0 4px 10px rgba(0,0,0,0.05)",
-      radius:      "12px",
-      radiusSm:    "8px",
-      radiusXs:    "6px",
-    };
+const EMADS_LIST = [
+  "Barreiro 1","Barreiro 2","Barreiro 3","CS 1","CS 2","HOB 1","HOB 2",
+  "Leste 1","Leste 2","Nordeste 1","Nordeste 3","Noroeste",
+  "Norte 1","Norte 2","Oeste 1","Oeste 2","Pampulha 1","Pampulha 2",
+  "Pediátrica","Venda Nova 1","Venda Nova 2",
+];
 
-    // ── Utilitários ───────────────────────────────────────────────────
-    const gerarProntuario = (nome, nasc) => {
-      if (!nome || !nasc) return "";
-      const ini = nome.trim().split(/\s+/).filter(Boolean)
-        .map(p => p[0]).join("").toUpperCase().replace(/[^A-Z]/g, "");
-      const nums = nasc.replace(/\D/g, "");
-      if (ini.length < 2 || nums.length < 8) return "";
-      return `${ini}${nums.slice(0,2)}${nums.slice(2,4)}${nums.slice(4,8)}`;
-    };
+const UPA_LIST = ["Barreiro","Centro Sul","Leste","Norte","Nordeste","Odilon Behrens","Oeste","Pampulha","Venda Nova"];
 
-    const maskDate  = v => {
-      const d = v.replace(/\D/g,"").slice(0,8);
-      if (d.length <= 2) return d;
-      if (d.length <= 4) return `${d.slice(0,2)}/${d.slice(2)}`;
-      return `${d.slice(0,2)}/${d.slice(2,4)}/${d.slice(4)}`;
-    };
-    const maskCPF   = v => {
-      const d = v.replace(/\D/g,"").slice(0,11);
-      if (d.length <= 3) return d;
-      if (d.length <= 6) return `${d.slice(0,3)}.${d.slice(3)}`;
-      if (d.length <= 9) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;
-      return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
-    };
-    const maskPhone = v => {
-      const d = v.replace(/\D/g,"").slice(0,11);
-      if (d.length <= 2) return `(${d}`;
-      if (d.length <= 7) return `(${d.slice(0,2)}) ${d.slice(2)}`;
-      return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
-    };
-    const maskCID   = v => v.replace(/[^A-Za-z0-9.]/g,"").toUpperCase().slice(0,7);
+const HOSPITAL_LIST = [
+  "Amélia Lins","Baleia","Belo Horizonte","Clínicas","Cristiano Machado","Evangélico",
+  "Eduardo de Menezes","Felício Rocho","Galba Veloso","João Paulo II","João XXIII",
+  "LifeCenter","Municipal de Contagem","Mater Dei","Mario Penna","Nossa Senhora Aparecida",
+  "Privados","Paulo de Tarso","Semper","São Camilo","Vera Cruz","IPSEMG",
+  "Odete Valadares","Sofia Feldman","Odilon Behrens","Risoleta Neves","Santa Casa",
+  "Júlia Kubtischek","Alberto Cavalcanti","São Francisco de Assis",
+  "Célio de Castro","Ciências Médicas","Luxemburgo",
+];
 
-    const diasAdmitido = adm => {
-      if (!adm) return null;
-      const [dd,mm,aaaa] = adm.split("/");
-      if (!dd||!mm||!aaaa||aaaa.length<4) return null;
-      const diff = (Date.now() - new Date(`${aaaa}-${mm}-${dd}`)) / 86400000;
-      return isNaN(diff) ? null : Math.max(0, Math.floor(diff));
-    };
+const CS_LIST = [
+  "AARÃO REIS","ACAIACA","ÁGUA BRANCA","ALÍPIO DE MELO","ALTO VERA CRUZ",
+  "AMAMBAÍ","APARECIDA","BALEIA","BARREIRO","BEIRA LINHA","BELA VISTA",
+  "BELVEDERE","BOM JESUS","CACHOEIRINHA","CAFEZAL","CAMARGOS","CAMPOS ELÍSEOS",
+  "CAPITÃO EDUARDO","CARDOSO","CASTANHEIRAS","CATUMBI","CÉLIA SOARES",
+  "CENÁCULO","CONCÓRDIA","CONFISCO","CONJUNTO CALIFÓRNIA","COPACABANA",
+  "CORONEL CELESTINO","CÔNEGO MESSIAS","CRUZEIRO","DOM BOSCO","DR. HUGO WERNECK",
+  "EDGAR PEREIRA","ENGENHO NOGUEIRA","ESPLANADA","ESTRELA DO ORIENTE",
+  "FELICIDADE","FLÁVIO GUIMARÃES","FLORAMAR","GLÓRIA","GOIÂNIA",
+  "GRANJA DE FREITAS","GRANJA WERNECK","GUARANI","GUTIERREZ","HELIÓPOLIS",
+  "HENRIQUE VERAS","INCONFIDÊNCIA","IPIRANGA","JARDIM ALVORADA",
+  "JARDIM GUANABARA","JARDIM LEBLON","JARDINÓPOLIS","JATOBÁ","JOÃO PINHEIRO",
+  "JULIANA","LAGOINHA","LAGOA","LÁZARO","LINDEIA","LOURDES","MANGUEIRAS",
+  "MANTIQUEIRA","MARIO CAMPOS","MÁRIO QUINTANA","MIRAMAR","MONTE SÃO JOSÉ",
+  "MORRO DAS PEDRAS","NAZARÉ","NORDESTE","NOVA CINTRA","NOVA GAMELEIRA",
+  "NOVO MUNDO","NOVO SÃO LUCAS","OUTEIRO","PADRE EUSTÁQUIO","PARQUE SÃO PEDRO",
+  "PEDREIRA PRADO LOPES","PRIMEIRO DE MAIO","PIRATININGA","PLANALTO","POMPÉIA",
+  "PROVIDÊNCIA","RIBEIRO DE ABREU","RIO BRANCO","SALGADO FILHO","SANTA AMÉLIA",
+  "SANTA EFIGÊNIA","SANTA HELENA","SANTA INÊS","SANTA LUZIA","SANTA MARIA",
+  "SANTA RITA","SANTA ROSA","SANTA TEREZINHA","SANTOS DUMONT","SÃO BERNARDO",
+  "SÃO CRISTÓVÃO","SÃO FRANCISCO","SÃO GABRIEL","SÃO GONÇALO",
+  "SÃO JOÃO BATISTA","SÃO JORGE","SÃO LUCAS","SÃO PAULO","SAUDADE",
+  "SERRA VERDE","SERRANO","SINIMBU","SOLIMÕES","TAQUARIL","TUPI","URUCUIA",
+  "VALE DO JATOBÁ","VENTOSA","VERA CRUZ","VILA ANTENA",
+  "VILA BARRAGEM SANTA LÚCIA","VILA CALIFÓRNIA","VILA CLORIS","VILA COPACABANA",
+  "VILA DAS FLORES","VILA DA PAZ","VILA DO OURO","VILA FÁTIMA","VILA JARDIM",
+  "VILA MARIA","VILA NOVA","VILA SANTA CECÍLIA","VILA TIRADENTES","VISTA ALEGRE",
+  "XANGRILÁ","ZILAH SPÓSITO",
+];
 
-    const fmt = n => n !== null && n !== undefined ? String(n) : "—";
+const OUTRO_SAD_LIST = [
+  "Alfenas","Araguari","Barbacena","Bom Despacho","Brumadinho","Betim","Buritizeiro",
+  "Capelinha","Campo Belo","Congonhas","Caratinga","Contagem","Caeté","Diamantina",
+  "Divinópolis","Francisco Sá","Gouveia","Ibirité","Itamarandiba","Ipatinga",
+  "Itaobim","Jaíba","Juiz de Fora","Jequitinhonha","Juatuba","Lagoa Santa",
+  "Mariana","Monte Carmelo","Minas Novas","Muriaé","Montes Claros","Nova Lima",
+  "Oliveira","Poços de Caldas","Pitangui","Pedro Leopoldo","Pará de Minas",
+  "Pirapora","Patos de Minas","Ribeirão das Neves","Sabará","São Lourenço",
+  "Salinas","Sarzedo","Santa Luzia","Taiobeiras","Teófilo Otoni","Uberaba",
+  "Uberlândia","Varginha","Vespasiano","Viçosa","Ouro Preto","Serro",
+  "Matheus Leme","Itambacuri",
+];
 
-    // ── Dados estáticos ───────────────────────────────────────────────
-    const EQUIPES_LIST = Array.from({length:22},(_,i)=>`Equipe ${String(i+1).padStart(2,"0")}`);
+const ORIGEM_DETALHES = {
+  "UPA": UPA_LIST, "EMAD": EMADS_LIST, "Hospital": HOSPITAL_LIST,
+  "Centro de Saúde": CS_LIST, "Outro SAD": OUTRO_SAD_LIST, "Outros": [],
+};
 
-    const DISPS_KEYS   = ["SVD","O2","SNE","GTT","TQT","VM","Hipodermoclise","ATB24h","ATB12h","CurativoEsp"];
-    const DISPS_LABELS = {SVD:"SVD",O2:"O₂",SNE:"SNE",GTT:"GTT",TQT:"TQT",VM:"Vent. Mecânica",
-      Hipodermoclise:"Hipodermóclise",ATB24h:"ATB 24/24h",ATB12h:"ATB 12/12h",CurativoEsp:"Curativo Especial"};
-    const DISPS_ICONS  = {SVD:"🩺",O2:"💨",SNE:"🔴",GTT:"🔵",TQT:"🫁",VM:"⚙️",
-      Hipodermoclise:"💉",ATB24h:"🧬",ATB12h:"🧬",CurativoEsp:"🩹"};
+const DESTINO_LISTA = [
+  "Administrativa","UPA","Centro de Saúde",
+  "Internação Hospitalar Eletiva","Internação Hospitalar Urgência",
+  "Outra EMAD","Transferência para Outro SAD",
+  "Óbito Domiciliar","Óbito não Domiciliar","Outros",
+];
 
-    const COMPLEXIDADE_LABELS = ["","Baixa","Moderada","Alta","Crítica"];
-    const COMPLEXIDADE_COLORS = ["","#15803D","#2563EB","#D97706","#DC2626"];
+const INTERNACAO_URG_MOTIVOS = [
+  "INTERCORRÊNCIA CLÍNICA PROVOCADA PELA DOENÇA DE BASE",
+  "HIPOTENSÃO REFRATÁRIA A VOLUME","INSUFICIÊNCIA RESPIRATÓRIA AGUDA",
+  "HEMORRAGIA DIGESTIVA ALTA E/OU HEMORRAGIA DIGESTIVA BAIXA",
+  "DISTÚRBIO DE COAGULAÇÃO","FALHA TERAPÊUTICA (ATB)",
+  "INSUFICIÊNCIA RENAL AGUDA","OUTROS",
+];
 
-    const STATUS_MAP = {
-      ativo:     {c:"#166534",bg:"#DCFCE7",bd:"#86EFAC",label:"Ativo"},
-      avaliacao: {c:"#92400E",bg:"#FEF3C7",bd:"#FCD34D",label:"Em Avaliação"},
-      alta:      {c:"#1E40AF",bg:"#DBEAFE",bd:"#93C5FD",label:"Alta"},
-      negativa:  {c:"#374151",bg:"#F3F4F6",bd:"#D1D5DB",label:"Não Elegível"},
-      obito:     {c:"#991B1B",bg:"#FEE2E2",bd:"#FCA5A5",label:"Óbito"},
-    };
+const OBITO_DECLARANTE = ["EMAD","SAMU","Centro de Saúde","Outros"];
 
-    const ATB_STATS_SEED = [2,4,1,6,0,2,5,1,3,4,1,2,3,0,2,3,1,2,0,5,2,1];
+const ATB_LIST = [
+  "AMICACINA","GENTAMICINA","CEFEPIMA","CEFTAROLINA","CEFTAZIDIMA","CEFTRIAXONA",
+  "ERTAPENEM","MEROPENEM","VANCOMICINA","TEICOPLANIMA","DAPTOMICINA","LINEZOLIDA",
+  "TIGECICLINA","ANIDULAFUNGINA","CASPOFUNGINA","MICAFUNGINA","VARICONAZOL",
+  "ANFOTERICINA B COMPLEXO LIPÍDICO","ANFOTERICINA B LIPOSSOMAL","CIPROFLOXACINO",
+  "CLINDAMICINA","PENICILINA G PROCAÍNA","OUTRO (ESPECIFICAR)",
+];
 
-    const EQUIPE_STATS = EQUIPES_LIST.map((nome,i) => ({
-      nome,
-      ativos:      [8,12,7,15,10,9,13,6,11,14,8,10,7,12,9,11,13,8,10,7,12,9][i],
-      avaliados:   [2,1,3,0,2,1,0,3,1,2,0,1,2,3,0,1,2,1,0,2,1,3][i],
-      SVD:         [3,2,4,1,2,3,2,1,3,2,4,2,1,3,2,3,1,2,4,1,3,2][i],
-      ATB:         ATB_STATS_SEED[i],
-      CurativoEsp: [1,2,0,3,1,0,2,1,0,2,1,1,2,0,1,2,0,1,2,1,0,2][i],
-      O2:          [4,3,5,2,6,3,4,2,5,3,4,3,2,5,3,4,2,3,5,2,4,3][i],
-      motoristas:  [2,3,2,3,1,2,3,2,2,3,2,2,3,1,2,3,2,2,1,2,3,2][i],
-      negativas:   [1,0,2,1,0,1,0,2,1,0,0,1,1,0,1,0,1,0,0,1,0,1][i],
-    }));
+const DOENCAS_LIST = [
+  "DOENÇAS CARDIO VASCULARES (INCLUI AVC)","DOENÇAS NEUROLÓGICAS (EXCLUI AVC)",
+  "DOENÇAS DO TRATO RESPIRATÓRIO (EXCLUI H1N1)","NOVO DISPOSITIVO",
+  "DISTÚRBIO METABÓLICO OU HIDROELETROLÍTICO","LESÕES CUTÂNEAS",
+  "CUIDADOS PALIATIVOS","FRATURAS E OSTEOMIELITES","DOENÇAS DO TRATO URINÁRIO",
+  "SÍFILIS CONGÊNITA","OTITE","BAIXO PESO","ICTERÍCIA","DOENÇAS NEUROMUSCULARES",
+  "APNEIA DO SONO","HIPOVENTILAÇÃO DA OBESIDADE","FIBROSE PULMONAR",
+  "DISPNÉIA A/E","HIPERTENSÃO PULMONAR","OUTROS",
+];
 
-    const PACIENTES_MOCK = [
-      {id:"MASP01011945",nome:"Maria Aparecida Santos Pereira",nascimento:"01/01/1945",cpf:"123.456.789-00",telefone:"(31) 99999-1111",admissao:"10/04/2026",status:"ativo",equipe:"Equipe 01",cid:"J44.1",perfil:"DPOC avançado",complexidade:3,motivo:"Agudização DPOC + necessidade O2 domiciliar",SVD:true,O2:true,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB24h:true,ATB12h:false,CurativoEsp:false},
-      {id:"JRSS15031960",nome:"João Rodrigues da Silva Souza",nascimento:"15/03/1960",cpf:"234.567.890-11",telefone:"(31) 98888-2222",admissao:"05/04/2026",status:"ativo",equipe:"Equipe 01",cid:"I50.0",perfil:"Insuficiência Cardíaca",complexidade:4,motivo:"Descompensação cardíaca + curativo de ferida complexa",SVD:false,O2:true,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB24h:false,ATB12h:false,CurativoEsp:true},
-      {id:"AFC22061958",nome:"Ana Ferreira Costa",nascimento:"22/06/1958",cpf:"345.678.901-22",telefone:"(31) 97777-3333",admissao:"01/03/2026",status:"ativo",equipe:"Equipe 02",cid:"G20",perfil:"Parkinson",complexidade:2,motivo:"Parkinson avançado + disfagia severa",SVD:true,O2:false,SNE:true,GTT:false,TQT:false,VM:false,Hipodermoclise:true,ATB24h:false,ATB12h:false,CurativoEsp:false},
-      {id:"PCO08091970",nome:"Paulo Carvalho Oliveira",nascimento:"08/09/1970",cpf:"456.789.012-33",telefone:"(31) 96666-4444",admissao:"",status:"avaliacao",equipe:"Equipe 01",cid:"",perfil:"",complexidade:0,motivo:"Sequela AVC + incontinência urinária",SVD:false,O2:false,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB24h:false,ATB12h:false,CurativoEsp:false},
-      {id:"LSM30121965",nome:"Luisa Santos Miranda",nascimento:"30/12/1965",cpf:"567.890.123-44",telefone:"(31) 95555-5555",admissao:"20/03/2026",status:"alta",equipe:"Equipe 03",cid:"C50.9",perfil:"Oncológico",complexidade:3,motivo:"Cuidados paliativos oncológicos",SVD:false,O2:false,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB24h:false,ATB12h:false,CurativoEsp:false},
-      {id:"RLCO03071950",nome:"Rosa Lima Costa Oliveira",nascimento:"03/07/1950",cpf:"678.901.234-55",telefone:"(31) 94444-6666",admissao:"14/04/2026",status:"ativo",equipe:"Equipe 02",cid:"I10",perfil:"HAS + Demência",complexidade:3,motivo:"HAS descontrolada + demência avançada",SVD:true,O2:false,SNE:false,GTT:true,TQT:false,VM:false,Hipodermoclise:false,ATB24h:false,ATB12h:true,CurativoEsp:true},
-      {id:"CMSO12041948",nome:"Carlos Mendes Silva Oliveira",nascimento:"12/04/1948",cpf:"789.012.345-66",telefone:"(31) 93333-7777",admissao:"08/04/2026",status:"ativo",equipe:"Equipe 01",cid:"G35",perfil:"Esclerose Múltipla",complexidade:4,motivo:"EM progressiva + traqueostomia",SVD:true,O2:true,SNE:false,GTT:false,TQT:true,VM:true,Hipodermoclise:false,ATB24h:true,ATB12h:false,CurativoEsp:false},
-    ];
+const COMORBIDADES_LIST = [
+  "HAS","IAM/DAC","SEQ_AVC","ICC","DPOC","TVP","TEP",
+  "DEMÊNCIA","DP","DESNUTRIÇÃO","ANEMIA","NEOPLASIA",
+  "DMID","NIDDM","DRC_NÃO_DIAL","OUTROS",
+];
 
-    const AVALIACOES_NEGATIVAS_MOCK = [
-      {id:"FMR20051975",nome:"Fernanda Moura Ribeiro",nascimento:"20/05/1975",equipe:"Equipe 01",dataAval:"15/04/2026",motivo:"Estabilidade clínica — não atingiu critério SAD",motEncamin:"Sequela AVC leve"},
-      {id:"BKO11111980",nome:"Bruno Kurtz Oliveira",nascimento:"11/11/1980",equipe:"Equipe 01",dataAval:"12/04/2026",motivo:"Paciente deambulando — condição ambulatorial",motEncamin:"Diabetes + HAS"},
-    ];
+const O2_OPTIONS = ["Não","Sim — Contínua","Sim — Noturna","Sim — Ao Esforço"];
+const PALIATIVO_OPTIONS = ["NÃO","PROPORCIONAIS","EXCLUSIVOS"];
+const AD_OPTIONS = ["AD1","AD2","AD3"];
+const SEXO_OPTIONS = ["Feminino","Masculino","Outro"];
 
-    // ── Componentes base ──────────────────────────────────────────────
-    const Badge = ({status}) => {
-      const s = STATUS_MAP[status] || STATUS_MAP.ativo;
-      return (
-        <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",
-          borderRadius:20,fontSize:11,fontWeight:700,letterSpacing:"0.03em",
-          color:s.c,background:s.bg,border:`1px solid ${s.bd}`}}>
-          {s.label}
-        </span>
-      );
-    };
+const DISPS_KEYS = ["SVD","O2","SNE","GTT","TQT","VM","Hipodermoclise","ATB","CurativoEsp"];
+const DISPS_LABELS = {
+  SVD:"SVD",O2:"O₂",SNE:"SNE",GTT:"GTT",TQT:"TQT",
+  VM:"Vent. Mecânica",Hipodermoclise:"Hipodermóclise",
+  ATB:"ATB Parenteral",CurativoEsp:"Curativo Especial",
+};
+const DISPS_ICONS = {
+  SVD:"🩺",O2:"💨",SNE:"🔴",GTT:"🔵",TQT:"🫁",
+  VM:"⚙️",Hipodermoclise:"💉",ATB:"🧬",CurativoEsp:"🩹",
+};
 
-    const ComplexBadge = ({val}) => {
-      if (!val) return <span style={{color:C.textMuted,fontSize:12}}>—</span>;
-      return (
-        <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",
-          borderRadius:20,fontSize:11,fontWeight:700,
-          color:COMPLEXIDADE_COLORS[val],background:`${COMPLEXIDADE_COLORS[val]}18`,
-          border:`1px solid ${COMPLEXIDADE_COLORS[val]}40`}}>
-          {"★".repeat(val)} {COMPLEXIDADE_LABELS[val]}
-        </span>
-      );
-    };
+const STATUS_MAP = {
+  ativo:         {c:"#006600",bg:"#E6FFE6",bd:"#66DD66",label:"Ativo"},
+  avaliacao:     {c:"#994400",bg:"#FFF1E6",bd:"#FFB066",label:"Em Avaliação"},
+  alta:          {c:"#243dfc",bg:"#EEEEFF",bd:"#99AAFF",label:"Alta"},
+  negativa:      {c:"#555",bg:"#F3F4F6",bd:"#AAAAAA",label:"Não Elegível"},
+  obito:         {c:"#880000",bg:"#FFEEEE",bd:"#FF8888",label:"Óbito"},
+  transferencia: {c:"#823d00",bg:"#FFF3E6",bd:"#bc6a2e",label:"Em Transferência"},
+};
 
-    const Chip = ({label,active,onClick,color}) => (
-      <button onClick={onClick} style={{
-        display:"inline-flex",alignItems:"center",gap:4,padding:"5px 12px",
-        borderRadius:20,border:`1.5px solid ${active?(color||C.primary):C.border}`,
-        background:active?`${color||C.primary}15`:C.surface,
-        color:active?(color||C.primary):C.textSec,
-        fontSize:12,fontWeight:active?700:400,cursor:"pointer",transition:"all 0.15s",
-      }}>{label}</button>
-    );
+const AD_COLORS = {
+  AD1:{c:"#006600",bg:"#E6FFE6",bd:"#66DD66"},
+  AD2:{c:"#994400",bg:"#FFF1E6",bd:"#FFB066"},
+  AD3:{c:"#880000",bg:"#FFEEEE",bd:"#FF8888"},
+};
 
-    const Card = ({children,style={}}) => (
-      <div style={{background:C.surface,borderRadius:C.radius,boxShadow:C.shadow,
-        border:`1px solid ${C.border}`,...style}}>
-        {children}
-      </div>
-    );
+const EQUIPE_STATS = EQUIPES_LIST.map((nome,i)=>({
+  nome,
+  ativos:      [8,12,7,15,10,9,13,6,11,14,8,10,7,12,9,11,13,8,10,7,12,9][i],
+  avaliados:   [2,1,3,0,2,1,0,3,1,2,0,1,2,3,0,1,2,1,0,2,1,3][i],
+  SVD:         [3,2,4,1,2,3,2,1,3,2,4,2,1,3,2,3,1,2,4,1,3,2][i],
+  ATB:         [2,4,1,6,0,2,5,1,3,4,1,2,3,0,2,3,1,2,0,5,2,1][i],
+  CurativoEsp: [1,2,0,3,1,0,2,1,0,2,1,1,2,0,1,2,0,1,2,1,0,2][i],
+  O2:          [4,3,5,2,6,3,4,2,5,3,4,3,2,5,3,4,2,3,5,2,4,3][i],
+  motoristas:  [2,3,2,3,1,2,3,2,2,3,2,2,3,1,2,3,2,2,1,2,3,2][i],
+}));
 
-    const KPI = ({label,value,sub,color,icon}) => (
-      <Card style={{padding:"18px 20px",flex:1,minWidth:140}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div>
-            <div style={{fontSize:11,fontWeight:600,color:C.textMuted,textTransform:"uppercase",
-              letterSpacing:"0.07em",marginBottom:6}}>{label}</div>
-            <div style={{fontSize:28,fontWeight:800,color:color||C.text,lineHeight:1}}>{value}</div>
-            {sub && <div style={{fontSize:12,color:C.textSec,marginTop:4}}>{sub}</div>}
+/* Estatísticas comparativas mock */
+const STATS_ANT = {admitidos:18,avaliados:24,visitas:312,altas:12,intercorrencias:8,obitos:3,naoElegiveis:6};
+const STATS_ATU = {admitidos:22,avaliados:20,visitas:287,altas:9,intercorrencias:11,obitos:2,naoElegiveis:4};
+
+/* ══════════════════════════════════════════════════════
+   MOCK DATA — Pacientes
+══════════════════════════════════════════════════════ */
+const PACIENTES_MOCK = [
+  {id:"MASP01011945",nome:"Maria Aparecida Santos Pereira",nascimento:"01/01/1945",cpf:"123.456.789-00",
+   telefone:"(31) 99999-1111",sexo:"Feminino",nomeCuidador:"José Pereira",telCuidador:"(31) 88888-0001",
+   admissao:"10/04/2026",status:"ativo",equipe:"Equipe 01",cid:"J44.1",cidCronico:"J44.0",cidInternacao:"",
+   perfil:"DOENÇAS DO TRATO RESPIRATÓRIO (EXCLUI H1N1)",ad:"AD3",score:18,
+   motivo:"Agudização DPOC + necessidade O2 domiciliar",origem:"UPA",origemDetalhe:"Barreiro",
+   dataDocumentos:"08/04/2026",
+   SVD:true,O2:true,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB:true,CurativoEsp:false,
+   atb1:"CEFTRIAXONA",atb2:"",o2Indicacao:"Sim — Contínua",paliativo:"PROPORCIONAIS",
+   comorbidades:["HAS","DPOC","DESNUTRIÇÃO"],
+   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:""},
+  {id:"JRSS15031960",nome:"João Rodrigues da Silva Souza",nascimento:"15/03/1960",cpf:"234.567.890-11",
+   telefone:"(31) 98888-2222",sexo:"Masculino",nomeCuidador:"Ana Souza",telCuidador:"(31) 88888-0002",
+   admissao:"05/04/2026",status:"ativo",equipe:"Equipe 01",cid:"I50.0",cidCronico:"I10",cidInternacao:"",
+   perfil:"DOENÇAS CARDIO VASCULARES (INCLUI AVC)",ad:"AD3",score:22,
+   motivo:"Descompensação cardíaca + curativo de ferida complexa",origem:"Hospital",origemDetalhe:"Santa Casa",
+   dataDocumentos:"04/04/2026",
+   SVD:false,O2:true,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB:false,CurativoEsp:true,
+   atb1:"",atb2:"",o2Indicacao:"Sim — Noturna",paliativo:"NÃO",
+   comorbidades:["HAS","IAM/DAC","ICC","DMID"],
+   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:""},
+  {id:"AFC22061958",nome:"Ana Ferreira Costa",nascimento:"22/06/1958",cpf:"345.678.901-22",
+   telefone:"(31) 97777-3333",sexo:"Feminino",nomeCuidador:"Carlos Costa",telCuidador:"(31) 88888-0003",
+   admissao:"01/03/2026",status:"ativo",equipe:"Equipe 02",cid:"G20",cidCronico:"G20",cidInternacao:"",
+   perfil:"DOENÇAS NEUROLÓGICAS (EXCLUI AVC)",ad:"AD2",score:14,
+   motivo:"Parkinson avançado + disfagia severa",origem:"Centro de Saúde",origemDetalhe:"JARDIM LEBLON",
+   dataDocumentos:"28/02/2026",
+   SVD:true,O2:false,SNE:true,GTT:false,TQT:false,VM:false,Hipodermoclise:true,ATB:false,CurativoEsp:false,
+   atb1:"",atb2:"",o2Indicacao:"Não",paliativo:"PROPORCIONAIS",
+   comorbidades:["DP","DESNUTRIÇÃO","DEMÊNCIA"],
+   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:""},
+  {id:"PCO08091970",nome:"Paulo Carvalho Oliveira",nascimento:"08/09/1970",cpf:"456.789.012-33",
+   telefone:"(31) 96666-4444",sexo:"Masculino",nomeCuidador:"Marta Oliveira",telCuidador:"(31) 88888-0004",
+   admissao:"",status:"avaliacao",equipe:"Equipe 01",cid:"",cidCronico:"",cidInternacao:"",
+   perfil:"",ad:"",score:0,motivo:"Sequela AVC + incontinência urinária",origem:"UPA",origemDetalhe:"Leste",
+   dataDocumentos:"16/04/2026",
+   SVD:false,O2:false,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB:false,CurativoEsp:false,
+   atb1:"",atb2:"",o2Indicacao:"Não",paliativo:"NÃO",comorbidades:[],
+   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:""},
+  {id:"LSM30121965",nome:"Luisa Santos Miranda",nascimento:"30/12/1965",cpf:"567.890.123-44",
+   telefone:"(31) 95555-5555",sexo:"Feminino",nomeCuidador:"Roberto Miranda",telCuidador:"(31) 88888-0005",
+   admissao:"20/03/2026",status:"alta",equipe:"Equipe 03",cid:"C50.9",cidCronico:"C50.9",cidInternacao:"",
+   perfil:"CUIDADOS PALIATIVOS",ad:"AD3",score:20,
+   motivo:"Cuidados paliativos oncológicos",origem:"Hospital",origemDetalhe:"Mario Penna",
+   dataDocumentos:"18/03/2026",
+   SVD:false,O2:false,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB:false,CurativoEsp:false,
+   atb1:"",atb2:"",o2Indicacao:"Não",paliativo:"EXCLUSIVOS",comorbidades:["NEOPLASIA"],
+   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:""},
+  {id:"RLCO03071950",nome:"Rosa Lima Costa Oliveira",nascimento:"03/07/1950",cpf:"678.901.234-55",
+   telefone:"(31) 94444-6666",sexo:"Feminino",nomeCuidador:"Luiz Oliveira",telCuidador:"(31) 88888-0006",
+   admissao:"14/04/2026",status:"ativo",equipe:"Equipe 02",cid:"I10",cidCronico:"I10",cidInternacao:"",
+   perfil:"DOENÇAS CARDIO VASCULARES (INCLUI AVC)",ad:"AD2",score:12,
+   motivo:"HAS descontrolada + demência avançada",origem:"EMAD",origemDetalhe:"Leste 1",
+   dataDocumentos:"12/04/2026",
+   SVD:true,O2:false,SNE:false,GTT:true,TQT:false,VM:false,Hipodermoclise:false,ATB:true,CurativoEsp:true,
+   atb1:"AMICACINA",atb2:"",o2Indicacao:"Não",paliativo:"NÃO",
+   comorbidades:["HAS","DEMÊNCIA","DRC_NÃO_DIAL"],
+   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:""},
+  {id:"CMSO12041948",nome:"Carlos Mendes Silva Oliveira",nascimento:"12/04/1948",cpf:"789.012.345-66",
+   telefone:"(31) 93333-7777",sexo:"Masculino",nomeCuidador:"Sônia Silva",telCuidador:"(31) 88888-0007",
+   admissao:"08/04/2026",status:"ativo",equipe:"Equipe 01",cid:"G35",cidCronico:"G35",cidInternacao:"",
+   perfil:"DOENÇAS NEUROMUSCULARES",ad:"AD3",score:25,
+   motivo:"EM progressiva + traqueostomia",origem:"Hospital",origemDetalhe:"Clínicas",
+   dataDocumentos:"07/04/2026",
+   SVD:true,O2:true,SNE:false,GTT:false,TQT:true,VM:true,Hipodermoclise:false,ATB:true,CurativoEsp:false,
+   atb1:"MEROPENEM",atb2:"VANCOMICINA",o2Indicacao:"Sim — Contínua",paliativo:"NÃO",
+   comorbidades:["HAS","ICC"],
+   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:""},
+];
+
+/* ══════════════════════════════════════════════════════
+   UTILIDADES
+══════════════════════════════════════════════════════ */
+const gerarProntuario = (nome,nasc)=>{
+  if(!nome||!nasc) return "";
+  const ini=nome.trim().split(/\s+/).filter(Boolean).map(p=>p[0]).join("").toUpperCase().replace(/[^A-Z]/g,"");
+  const nums=nasc.replace(/\D/g,"");
+  if(ini.length<2||nums.length<8) return "";
+  return `${ini}${nums.slice(0,2)}${nums.slice(2,4)}${nums.slice(4,8)}`;
+};
+const calcIdade=nasc=>{
+  if(!nasc) return null;
+  const [dd,mm,aaaa]=nasc.split("/");
+  if(!dd||!mm||!aaaa||aaaa.length<4) return null;
+  const today=new Date(),birth=new Date(`${aaaa}-${mm}-${dd}`);
+  let age=today.getFullYear()-birth.getFullYear();
+  const m=today.getMonth()-birth.getMonth();
+  if(m<0||(m===0&&today.getDate()<birth.getDate())) age--;
+  return isNaN(age)?null:age;
+};
+const diasAdmitido=adm=>{
+  if(!adm) return null;
+  const [dd,mm,aaaa]=adm.split("/");
+  if(!dd||!mm||!aaaa||aaaa.length<4) return null;
+  const diff=(Date.now()-new Date(`${aaaa}-${mm}-${dd}`))/86400000;
+  return isNaN(diff)?null:Math.max(0,Math.floor(diff));
+};
+const maskDate=v=>{const d=v.replace(/\D/g,"").slice(0,8);if(d.length<=2)return d;if(d.length<=4)return`${d.slice(0,2)}/${d.slice(2)}`;return`${d.slice(0,2)}/${d.slice(2,4)}/${d.slice(4)}`;};
+const maskCPF=v=>{const d=v.replace(/\D/g,"").slice(0,11);if(d.length<=3)return d;if(d.length<=6)return`${d.slice(0,3)}.${d.slice(3)}`;if(d.length<=9)return`${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;return`${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;};
+const maskPhone=v=>{const d=v.replace(/\D/g,"").slice(0,11);if(d.length<=2)return`(${d}`;if(d.length<=7)return`(${d.slice(0,2)}) ${d.slice(2)}`;return`(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;};
+const maskCID=v=>v.replace(/[^A-Za-z0-9.]/g,"").toUpperCase().slice(0,7);
+const hoje=()=>new Date().toLocaleDateString("pt-BR");
+
+/* ══════════════════════════════════════════════════════
+   COMPONENTES BASE
+══════════════════════════════════════════════════════ */
+const Card=({children,style={}})=>(
+  <div style={{background:C.surface,borderRadius:C.radius,boxShadow:C.shadow,border:`1px solid ${C.border}`,...style}}>
+    {children}
+  </div>
+);
+
+const Badge=({status})=>{
+  const s=STATUS_MAP[status]||STATUS_MAP.ativo;
+  return <span style={{display:"inline-flex",alignItems:"center",padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:900,letterSpacing:"0.03em",color:s.c,background:s.bg,border:`1px solid ${s.bd}`}}>{s.label}</span>;
+};
+
+const AdBadge=({val})=>{
+  if(!val) return null;
+  const s=AD_COLORS[val]||AD_COLORS.AD1;
+  return <span style={{display:"inline-flex",alignItems:"center",padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:900,color:s.c,background:s.bg,border:`1px solid ${s.bd}`}}>{val}</span>;
+};
+
+const Btn=({children,onClick,variant="primary",size="md",disabled=false,style={}})=>{
+  const pad=size==="sm"?{padding:"5px 11px",fontSize:12}:size==="lg"?{padding:"10px 22px",fontSize:15}:{padding:"8px 15px",fontSize:13};
+  const vars={
+    primary:{background:C.primary,color:"#000",fontWeight:900},
+    secondary:{background:C.neutralBg,color:C.text,border:`1px solid ${C.border}`},
+    success:{background:C.success,color:"#000",fontWeight:900},
+    danger:{background:C.danger,color:"#fff",fontWeight:900},
+    orange:{background:C.orange,color:"#000",fontWeight:900},
+    ghost:{background:"transparent",color:C.primary,fontWeight:900},
+  };
+  return (
+    <button onClick={disabled?undefined:onClick}
+      style={{cursor:disabled?"not-allowed":"pointer",border:"none",borderRadius:C.radiusSm,
+        fontFamily:"inherit",transition:"all 0.15s",display:"inline-flex",alignItems:"center",gap:6,
+        opacity:disabled?0.5:1,...pad,...vars[variant],...style}}>
+      {children}
+    </button>
+  );
+};
+
+const Input=({label,value,onChange,placeholder,mask,type="text",required,error,hint,disabled,style={}})=>{
+  const handle=e=>{
+    let v=e.target.value;
+    if(mask==="date")  v=maskDate(v);
+    if(mask==="cpf")   v=maskCPF(v);
+    if(mask==="phone") v=maskPhone(v);
+    if(mask==="cid")   v=maskCID(v);
+    if(mask==="name")  v=v.replace(/[0-9]/g,"");
+    onChange(v);
+  };
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:3,...style}}>
+      {label&&<label style={{fontSize:11,fontWeight:900,color:error?C.danger:C.textMuted,letterSpacing:"0.04em",textTransform:"uppercase"}}>{label}{required&&<span style={{color:C.danger}}> *</span>}</label>}
+      <input type={type} value={value} onChange={handle} placeholder={placeholder} disabled={disabled}
+        style={{padding:"8px 11px",borderRadius:C.radiusXs,border:`1.5px solid ${error?C.danger:C.border}`,
+          background:disabled?C.surfaceAlt:C.surface,color:C.text,fontSize:13,fontFamily:"inherit",
+          fontWeight:300,outline:"none",width:"100%",boxSizing:"border-box"}}/>
+      {(error||hint)&&<span style={{fontSize:11,color:error?C.danger:C.textMuted}}>{error||hint}</span>}
+    </div>
+  );
+};
+
+const Select=({label,value,onChange,options,required,disabled,placeholder})=>(
+  <div style={{display:"flex",flexDirection:"column",gap:3}}>
+    {label&&<label style={{fontSize:11,fontWeight:900,color:C.textMuted,letterSpacing:"0.04em",textTransform:"uppercase"}}>{label}{required&&<span style={{color:C.danger}}> *</span>}</label>}
+    <select value={value} onChange={e=>onChange(e.target.value)} disabled={disabled}
+      style={{padding:"8px 11px",borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,
+        background:disabled?C.surfaceAlt:C.surface,color:value?""+C.text:C.textMuted,
+        fontSize:13,fontFamily:"inherit",fontWeight:300,outline:"none",width:"100%"}}>
+      {placeholder&&<option value="">{placeholder}</option>}
+      {options.map(o=><option key={o.value||o} value={o.value||o}>{o.label||o}</option>)}
+    </select>
+  </div>
+);
+
+const Toggle=({label,icon,checked,onChange})=>(
+  <label style={{display:"flex",alignItems:"center",gap:7,padding:"7px 11px",
+    borderRadius:C.radiusXs,border:`1.5px solid ${checked?C.primary:C.border}`,
+    background:checked?C.primaryLt:C.surface,cursor:"pointer",transition:"all 0.15s",userSelect:"none"}}>
+    <input type="checkbox" checked={checked} onChange={e=>onChange(e.target.checked)}
+      style={{accentColor:C.primary,width:14,height:14}}/>
+    <span style={{fontSize:12,fontWeight:checked?900:300,color:checked?C.primaryDk:C.textSec}}>{icon} {label}</span>
+  </label>
+);
+
+const Divider=({label})=>(
+  <div style={{display:"flex",alignItems:"center",gap:10,margin:"4px 0"}}>
+    <div style={{flex:1,height:1,background:C.border}}/>
+    {label&&<span style={{fontSize:10,fontWeight:900,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>{label}</span>}
+    <div style={{flex:1,height:1,background:C.border}}/>
+  </div>
+);
+
+const KPI=({label,value,sub,color,icon,delta})=>(
+  <Card style={{padding:"16px 18px",flex:1,minWidth:130}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+      <div>
+        <div style={{fontSize:10,fontWeight:900,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5}}>{label}</div>
+        <div style={{fontSize:26,fontWeight:900,color:color||C.text,lineHeight:1}}>{value}</div>
+        {sub&&<div style={{fontSize:11,color:C.textMuted,marginTop:3}}>{sub}</div>}
+        {delta!==undefined&&(
+          <div style={{fontSize:11,fontWeight:900,color:delta>=0?C.success:C.danger,marginTop:2}}>
+            {delta>=0?"▲":"▼"} {Math.abs(delta)} vs mês ant.
           </div>
-          {icon && <span style={{fontSize:22,opacity:0.6}}>{icon}</span>}
+        )}
+      </div>
+      {icon&&<span style={{fontSize:20,opacity:0.5}}>{icon}</span>}
+    </div>
+  </Card>
+);
+
+/* Modal wrapper */
+const Modal=({title,onClose,children,width=560})=>(
+  <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:C.surface,borderRadius:C.radius,width:"100%",maxWidth:width,maxHeight:"90vh",overflowY:"auto",boxShadow:C.shadowMd}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 22px",borderBottom:`1px solid ${C.border}`,position:"sticky",top:0,background:C.surface,zIndex:1}}>
+        <div style={{fontSize:16,fontWeight:900,color:C.text}}>{title}</div>
+        <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,color:C.textMuted}}>×</button>
+      </div>
+      <div style={{padding:22}}>{children}</div>
+    </div>
+  </div>
+);
+
+/* Origem Selector (tipo + detalhe) */
+const OrigemSelector=({origemTipo,origemDetalhe,onChange})=>{
+  const tipos=Object.keys(ORIGEM_DETALHES);
+  const detalhes=ORIGEM_DETALHES[origemTipo]||[];
+  return (
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+      <Select label="Origem" value={origemTipo} onChange={v=>onChange(v,"")}
+        options={tipos} placeholder="Selecione"/>
+      {detalhes.length>0&&(
+        <Select label="Detalhe da Origem" value={origemDetalhe} onChange={v=>onChange(origemTipo,v)}
+          options={detalhes} placeholder="Selecione"/>
+      )}
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════════
+   MODAL ALTA
+══════════════════════════════════════════════════════ */
+const AltaModal=({paciente,onClose,onConfirm})=>{
+  const [dataAlta,setDataAlta]=useState(hoje());
+  const [destino,setDestino]=useState("");
+  const [destiDetalhe,setDestiDetalhe]=useState("");
+  const [obitoDeclarante,setObitoDeclarante]=useState("");
+  const [urgMotivo,setUrgMotivo]=useState("");
+  const [eletivaDesc,setEletivaDesc]=useState("");
+  const [err,setErr]=useState("");
+
+  const needsDetalhe=["UPA","Centro de Saúde"].includes(destino);
+  const detalheLista=needsDetalhe?(ORIGEM_DETALHES[destino]==="UPA"?UPA_LIST:CS_LIST):[];
+
+  const handleConfirm=()=>{
+    if(!destino){setErr("Selecione o destino."); return;}
+    if(destino==="Óbito Domiciliar"&&!obitoDeclarante){setErr("Informe quem declarou o óbito."); return;}
+    if(destino==="Internação Hospitalar Urgência"&&!urgMotivo){setErr("Informe o motivo da internação."); return;}
+    onConfirm({dataAlta,destino,destiDetalhe,obitoDeclarante,urgMotivo,eletivaDesc,
+      novoStatus: destino.startsWith("Óbito")?"obito":"alta"});
+  };
+
+  return (
+    <Modal title="Registrar Alta / Desfecho" onClose={onClose}>
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <Input label="Data do Desfecho" value={dataAlta} onChange={setDataAlta} mask="date" required/>
+        <Select label="Destino" value={destino} onChange={v=>{setDestino(v);setDestiDetalhe("");setObitoDeclarante("");setUrgMotivo("");setEletivaDesc("");}}
+          options={DESTINO_LISTA} placeholder="Selecione o destino" required/>
+
+        {needsDetalhe&&(
+          <Select label="Detalhe do Destino" value={destiDetalhe} onChange={setDestiDetalhe}
+            options={destino==="UPA"?UPA_LIST:CS_LIST} placeholder="Selecione"/>
+        )}
+        {destino==="Óbito Domiciliar"&&(
+          <Select label="Quem Declarou o Óbito" value={obitoDeclarante} onChange={setObitoDeclarante}
+            options={OBITO_DECLARANTE} placeholder="Selecione" required/>
+        )}
+        {destino==="Internação Hospitalar Urgência"&&(
+          <Select label="Motivo da Internação" value={urgMotivo} onChange={setUrgMotivo}
+            options={INTERNACAO_URG_MOTIVOS} placeholder="Selecione o motivo" required/>
+        )}
+        {destino==="Internação Hospitalar Eletiva"&&(
+          <Input label="Descrição" value={eletivaDesc} onChange={setEletivaDesc} placeholder="Descreva a indicação"/>
+        )}
+
+        {err&&<div style={{padding:"8px 12px",background:C.dangerBg,borderRadius:C.radiusXs,fontSize:12,color:C.danger,fontWeight:900}}>{err}</div>}
+
+        <div style={{display:"flex",gap:10,marginTop:4}}>
+          <Btn onClick={handleConfirm} variant={destino.startsWith("Óbito")?"danger":"success"} size="lg">
+            {destino.startsWith("Óbito")?"💀 Registrar Óbito":"✅ Confirmar Alta"}
+          </Btn>
+          <Btn onClick={onClose} variant="secondary">Cancelar</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
+/* ══════════════════════════════════════════════════════
+   MODAL TRANSFERÊNCIA
+══════════════════════════════════════════════════════ */
+const TransferenciaModal=({paciente,userEquipe,onClose,onEnviar})=>{
+  const [destino,setDestino]=useState("");
+  const [note,setNote]=useState("");
+  const [confirmou,setConfirmou]=useState(false);
+  const outrasEquipes=EMADS_LIST.filter(e=>e!==userEquipe);
+
+  return (
+    <Modal title="Transferir Paciente" onClose={onClose} width={480}>
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <div style={{padding:"10px 14px",background:C.primaryLt,borderRadius:C.radiusXs,fontSize:13}}>
+          <strong>{paciente.nome}</strong><br/>
+          <span style={{fontSize:11,color:C.textMuted}}>Prontuário: {paciente.id} · Equipe atual: {paciente.equipe}</span>
+        </div>
+        <Select label="Equipe de Destino" value={destino} onChange={setDestino}
+          options={outrasEquipes.map(e=>({value:e,label:`EMAD ${e}`}))} placeholder="Selecione a EMAD de destino" required/>
+        <Input label="Observações da Transferência" value={note} onChange={setNote}
+          placeholder="Motivo ou informações relevantes"/>
+        <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13}}>
+          <input type="checkbox" checked={confirmou} onChange={e=>setConfirmou(e.target.checked)}
+            style={{accentColor:C.primary,width:15,height:15}}/>
+          <span>Confirmo que estou autorizando esta transferência como responsável da {userEquipe}.</span>
+        </label>
+        {!confirmou&&<div style={{fontSize:11,color:C.textMuted}}>⚠ Marque a caixa de confirmação para continuar.</div>}
+        <div style={{display:"flex",gap:10}}>
+          <Btn onClick={()=>{if(destino&&confirmou) onEnviar(paciente.id,destino,note);}}
+            variant="orange" disabled={!destino||!confirmou}>📤 Enviar Transferência</Btn>
+          <Btn onClick={onClose} variant="secondary">Cancelar</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
+/* ══════════════════════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════════════════════ */
+const MENUS = {
+  equipe: [
+    {id:"dashboard",label:"Dashboard",icon:"📊"},
+    {id:"pacientes",label:"Pacientes",icon:"👥"},
+    {id:"avaliacao",label:"Avaliação / Admissão",icon:"🔍"},
+  ],
+  coordenacao: [
+    {id:"coord_dash",label:"Painel Geral",icon:"🗺️"},
+    {id:"coord_equipes",label:"22 Equipes",icon:"🏥"},
+    {id:"pacientes",label:"Pacientes",icon:"👥"},
+  ],
+};
+
+const Sidebar=({role,page,setPage,user,onLogout})=>{
+  const items=MENUS[role]||[];
+  return (
+    <nav style={{width:215,background:C.nav,display:"flex",flexDirection:"column",height:"100vh",position:"sticky",top:0,flexShrink:0}}>
+      <div style={{padding:"22px 18px 14px",borderBottom:"1px solid #222"}}>
+        <div style={{fontSize:18,fontWeight:900,color:C.navAccent,letterSpacing:"-0.02em",fontFamily:"'Alexandria',sans-serif"}}>SAD·BH</div>
+        <div style={{fontSize:9,color:"#555",marginTop:1,letterSpacing:"0.1em",textTransform:"uppercase"}}>Gestão Assistencial</div>
+      </div>
+      <div style={{flex:1,padding:"10px 8px",overflowY:"auto"}}>
+        {items.map(item=>{
+          const on=page===item.id;
+          return (
+            <button key={item.id} onClick={()=>setPage(item.id)}
+              style={{display:"flex",alignItems:"center",gap:9,width:"100%",padding:"9px 11px",
+                borderRadius:C.radiusSm,border:"none",cursor:"pointer",marginBottom:2,
+                background:on?"#1a1a1a":"transparent",
+                borderLeft:on?`3px solid ${C.navAccent}`:"3px solid transparent",
+                color:on?"#fff":C.navText,fontSize:12,fontWeight:on?900:300,
+                fontFamily:"inherit",transition:"all 0.12s",textAlign:"left"}}>
+              <span style={{fontSize:14}}>{item.icon}</span>{item.label}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{padding:"12px 15px",borderTop:"1px solid #222"}}>
+        <div style={{fontSize:10,color:"#555",marginBottom:1}}>Logado como</div>
+        <div style={{fontSize:11,color:"#fff",fontWeight:900,marginBottom:6,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user}</div>
+        <span style={{display:"inline-block",padding:"2px 8px",borderRadius:10,
+          background:role==="coordenacao"?"#243dfc22":"#00cf0022",
+          border:`1px solid ${role==="coordenacao"?C.blue:C.primary}`,
+          fontSize:9,fontWeight:900,color:role==="coordenacao"?"#99AAFF":C.navAccent,
+          textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8}}>
+          {role==="coordenacao"?"Coordenação":"Equipe"}
+        </span>
+        <button onClick={onLogout} style={{display:"flex",alignItems:"center",gap:5,
+          background:"transparent",border:"none",color:"#555",fontSize:11,cursor:"pointer",padding:0,fontFamily:"inherit"}}>
+          ← Sair
+        </button>
+      </div>
+    </nav>
+  );
+};
+
+/* ══════════════════════════════════════════════════════
+   LOGIN
+══════════════════════════════════════════════════════ */
+const LoginView=({onLogin})=>{
+  const [email,setEmail]=useState("");
+  const [err,setErr]=useState("");
+  const handle=()=>{
+    const domain=email.split("@")[1];
+    if(!DOMINIOS_VALIDOS.includes(domain)){setErr("Domínio não autorizado. Use seu e-mail institucional."); return;}
+    onLogin(email,/coord|chefia|gestao/i.test(email)?"coordenacao":"equipe");
+  };
+  return (
+    <div style={{minHeight:"100vh",background:`linear-gradient(135deg,#000 0%,#1a1a1a 60%,#00cf0022 100%)`,
+      display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <Card style={{width:380,padding:40}}>
+        <div style={{textAlign:"center",marginBottom:30}}>
+          <div style={{fontSize:40,marginBottom:8}}>🏥</div>
+          <div style={{fontSize:24,fontWeight:900,color:C.text,letterSpacing:"-0.02em",fontFamily:"'Alexandria',sans-serif"}}>SAD·BH</div>
+          <div style={{fontSize:13,color:C.textSec,marginTop:3}}>Serviço de Atenção Domiciliar</div>
+          <div style={{fontSize:11,color:C.textMuted}}>Secretaria Municipal de Saúde · BH</div>
+        </div>
+        <div style={{marginBottom:14}}>
+          <Input label="E-mail institucional" value={email} onChange={setEmail}
+            placeholder="usuario@smsa.belo-horizonte.mg.gov.br" error={err} required/>
+        </div>
+        <Btn onClick={handle} size="lg" style={{width:"100%",justifyContent:"center"}}>Entrar no Sistema</Btn>
+        <div style={{marginTop:18,padding:"10px 13px",background:C.primaryLt,borderRadius:C.radiusXs,fontSize:11,color:C.primaryDk}}>
+          <strong>Demo:</strong> equipe@demo.sad · coord@demo.sad
         </div>
       </Card>
-    );
+    </div>
+  );
+};
 
-    const Btn = ({children,onClick,variant="primary",size="md",disabled=false,style={}}) => {
-      const base = {cursor:disabled?"not-allowed":"pointer",border:"none",borderRadius:C.radiusSm,
-        fontWeight:600,transition:"all 0.15s",display:"inline-flex",alignItems:"center",gap:6,
-        opacity:disabled?0.55:1,...style};
-      const pad = size==="sm"?{padding:"6px 12px",fontSize:12}:size==="lg"?{padding:"11px 22px",fontSize:15}:{padding:"8px 16px",fontSize:13};
-      const variants = {
-        primary:{background:C.primary,color:"#fff"},
-        secondary:{background:C.neutralBg,color:C.text,border:`1px solid ${C.border}`},
-        success:{background:C.success,color:"#fff"},
-        danger:{background:C.danger,color:"#fff"},
-        ghost:{background:"transparent",color:C.primary},
-      };
-      return <button onClick={disabled?undefined:onClick} style={{...base,...pad,...variants[variant]}}>{children}</button>;
-    };
+/* ══════════════════════════════════════════════════════
+   DASHBOARD (com Censo fundido)
+══════════════════════════════════════════════════════ */
+const Dashboard=({pacientes,equipe,role,setPacientes})=>{
+  const scopePac=role==="equipe"?pacientes.filter(p=>p.equipe===equipe):pacientes;
+  const ativos=scopePac.filter(p=>p.status==="ativo");
+  const emAval=scopePac.filter(p=>p.status==="avaliacao");
+  const totalDisps=DISPS_KEYS.reduce((s,k)=>s+ativos.filter(p=>p[k]).length,0);
 
-    const Input = ({label,value,onChange,placeholder,mask,type="text",required,error,hint,disabled}) => {
-      const handleChange = e => {
-        let v = e.target.value;
-        if (mask === "date")  v = maskDate(v);
-        if (mask === "cpf")   v = maskCPF(v);
-        if (mask === "phone") v = maskPhone(v);
-        if (mask === "cid")   v = maskCID(v);
-        if (mask === "name")  v = v.replace(/[0-9]/g,"");
-        onChange(v);
-      };
-      return (
-        <div style={{display:"flex",flexDirection:"column",gap:4}}>
-          {label && (
-            <label style={{fontSize:12,fontWeight:600,color:error?C.danger:C.textSec,letterSpacing:"0.02em"}}>
-              {label}{required&&<span style={{color:C.danger}}> *</span>}
-            </label>
-          )}
-          <input
-            type={type} value={value} onChange={handleChange}
-            placeholder={placeholder} disabled={disabled}
-            style={{padding:"9px 12px",borderRadius:C.radiusXs,
-              border:`1.5px solid ${error?C.danger:C.border}`,
-              background:disabled?C.surfaceAlt:C.surface,
-              color:C.text,fontSize:13,outline:"none",
-              boxShadow:error?`0 0 0 3px ${C.danger}20`:undefined,
-              transition:"border-color 0.15s",width:"100%",boxSizing:"border-box"}}
-          />
-          {(error||hint) && <span style={{fontSize:11,color:error?C.danger:C.textMuted}}>{error||hint}</span>}
-        </div>
-      );
-    };
+  /* Permanência destaque */
+  const diasMedio=ativos.length?
+    Math.round(ativos.reduce((s,p)=>{const d=diasAdmitido(p.admissao);return d!=null?s+d:s;},0)/ativos.length):0;
 
-    const Select = ({label,value,onChange,options,required,disabled}) => (
-      <div style={{display:"flex",flexDirection:"column",gap:4}}>
-        {label && <label style={{fontSize:12,fontWeight:600,color:C.textSec,letterSpacing:"0.02em"}}>
-          {label}{required&&<span style={{color:C.danger}}> *</span>}
-        </label>}
-        <select value={value} onChange={e=>onChange(e.target.value)} disabled={disabled}
-          style={{padding:"9px 12px",borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,
-            background:disabled?C.surfaceAlt:C.surface,color:C.text,fontSize:13,outline:"none",
-            appearance:"auto",width:"100%"}}>
-          {options.map(o=>(
-            <option key={o.value||o} value={o.value||o}>{o.label||o}</option>
-          ))}
-        </select>
+  /* Motoristas census */
+  const [numMot,setNumMot]=useState(2);
+  const [motoristas,setMotoristas]=useState([{km:"",horas:""},{km:"",horas:""}]);
+  const updateMot=(i,field,val)=>setMotoristas(prev=>{const n=[...prev];n[i]={...n[i],[field]:val};return n;});
+  const totalKm=motoristas.reduce((s,m)=>s+(parseFloat(m.km)||0),0);
+  const totalHoras=motoristas.reduce((s,m)=>s+(parseFloat(m.horas)||0),0);
+  const kmMes=totalKm+1240; // mock acumulado
+  const horasMes=totalHoras+187;
+
+  /* Transferências pendentes recebidas */
+  const transfsRecebidas=pacientes.filter(p=>p.status==="transferencia"&&p.transferenciaDest===equipe);
+  const aceitarTransf=useCallback((id)=>{
+    setPacientes(prev=>prev.map(p=>p.id===id?{...p,status:"ativo",equipe:p.transferenciaDest,transferenciaOrig:"",transferenciaDest:"",transferenciaNote:""}:p));
+  },[setPacientes]);
+  const recusarTransf=useCallback((id)=>{
+    setPacientes(prev=>prev.map(p=>p.id===id?{...p,status:"ativo",transferenciaOrig:"",transferenciaDest:"",transferenciaNote:""}:p));
+  },[setPacientes]);
+
+  return (
+    <div style={{padding:24,display:"flex",flexDirection:"column",gap:22}}>
+      <div>
+        <div style={{fontSize:20,fontWeight:900,color:C.text}}>{role==="equipe"?equipe:"Painel Geral"}</div>
+        <div style={{fontSize:12,color:C.textMuted,marginTop:2}}>{new Date().toLocaleDateString("pt-BR",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
       </div>
-    );
 
-    const Toggle = ({label,icon,checked,onChange}) => (
-      <label style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",
-        borderRadius:C.radiusXs,border:`1.5px solid ${checked?C.primary:C.border}`,
-        background:checked?C.primaryLt:C.surface,cursor:"pointer",
-        transition:"all 0.15s",userSelect:"none"}}>
-        <input type="checkbox" checked={checked} onChange={e=>onChange(e.target.checked)}
-          style={{accentColor:C.primary,width:15,height:15}}/>
-        <span style={{fontSize:12,fontWeight:checked?700:400,color:checked?C.primary:C.textSec}}>
-          {icon} {label}
-        </span>
-      </label>
-    );
-
-    const Divider = ({label}) => (
-      <div style={{display:"flex",alignItems:"center",gap:12,margin:"8px 0"}}>
-        <div style={{flex:1,height:1,background:C.border}}/>
-        {label&&<span style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase",
-          letterSpacing:"0.08em",whiteSpace:"nowrap"}}>{label}</span>}
-        <div style={{flex:1,height:1,background:C.border}}/>
+      {/* KPIs */}
+      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+        <KPI label="Ativos" value={ativos.length} icon="👥" color={C.primary} delta={ativos.length-STATS_ANT.admitidos}/>
+        <KPI label="Em Avaliação" value={emAval.length} icon="🔍" color={C.orange}/>
+        <KPI label="Dispositivos e Proc." value={totalDisps} icon="🩺" color={C.blue}/>
+        <KPI label="Permanência Média" value={`${diasMedio}d`} icon="📅" color={C.brown}/>
       </div>
-    );
 
-    // ── Navegação lateral ─────────────────────────────────────────────
-    const MENUS = {
-      equipe: [
-        {id:"dashboard",label:"Dashboard",icon:"📊"},
-        {id:"pacientes",label:"Pacientes",icon:"👥"},
-        {id:"admissao",label:"Nova Admissão",icon:"➕"},
-        {id:"busca_ativa",label:"Busca Ativa",icon:"🔍"},
-        {id:"censo",label:"Censo Diário",icon:"📋"},
-      ],
-      coordenacao: [
-        {id:"coord_dash",label:"Painel Geral",icon:"🗺️"},
-        {id:"coord_equipes",label:"22 Equipes",icon:"🏥"},
-        {id:"pacientes",label:"Pacientes",icon:"👥"},
-      ],
-    };
-
-    const Sidebar = ({role,page,setPage,user,onLogout}) => {
-      const items = MENUS[role] || [];
-      return (
-        <nav style={{width:220,background:C.nav,display:"flex",flexDirection:"column",
-          height:"100vh",position:"sticky",top:0,flexShrink:0}}>
-          <div style={{padding:"24px 20px 16px",borderBottom:`1px solid #ffffff10`}}>
-            <div style={{fontSize:15,fontWeight:800,color:"#fff",letterSpacing:"-0.02em"}}>SAD·BH</div>
-            <div style={{fontSize:10,color:C.navText,marginTop:2,letterSpacing:"0.06em",
-              textTransform:"uppercase"}}>Gestão Assistencial</div>
-          </div>
-          <div style={{flex:1,padding:"12px 10px",overflowY:"auto"}}>
-            {items.map(item=>(
-              <button key={item.id} onClick={()=>setPage(item.id)}
-                style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"9px 12px",
-                  borderRadius:C.radiusSm,border:"none",cursor:"pointer",marginBottom:2,
-                  background:page===item.id?C.navActive:"transparent",
-                  color:page===item.id?"#fff":C.navText,fontSize:13,fontWeight:page===item.id?600:400,
-                  transition:"all 0.15s",textAlign:"left"}}>
-                <span style={{fontSize:15}}>{item.icon}</span>{item.label}
-              </button>
-            ))}
-          </div>
-          <div style={{padding:"12px 16px",borderTop:`1px solid #ffffff10`}}>
-            <div style={{fontSize:11,color:C.navText,marginBottom:2}}>Logado como</div>
-            <div style={{fontSize:12,color:"#fff",fontWeight:600,marginBottom:8,
-              overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user}</div>
-            <div style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 8px",
-              borderRadius:12,background:role==="coordenacao"?"#7C3AED22":"#15803D22",
-              border:`1px solid ${role==="coordenacao"?"#7C3AED":"#15803D"}`,
-              fontSize:10,fontWeight:700,color:role==="coordenacao"?"#C4B5FD":"#86EFAC",
-              marginBottom:10,textTransform:"uppercase",letterSpacing:"0.04em"}}>
-              {role==="coordenacao"?"Coordenação":"Equipe"}
-            </div>
-            <button onClick={onLogout} style={{display:"flex",alignItems:"center",gap:6,
-              background:"transparent",border:"none",color:C.navText,fontSize:12,cursor:"pointer",
-              padding:0}}>
-              ← Sair
-            </button>
-          </div>
-        </nav>
-      );
-    };
-
-    // ── Login ─────────────────────────────────────────────────────────
-    const LoginView = ({onLogin}) => {
-      const [email,setEmail] = useState("");
-      const [err,setErr]     = useState("");
-
-      const handleLogin = () => {
-        const domain = email.split("@")[1];
-        if (!DOMINIOS_VALIDOS.includes(domain)) {
-          setErr("Domínio não autorizado. Use seu e-mail institucional.");
-          return;
-        }
-        const role = /coord|chefia|gestao/i.test(email) ? "coordenacao" : "equipe";
-        onLogin(email, role);
-      };
-
-      const handleKey = e => { if (e.key === "Enter") handleLogin(); };
-
-      return (
-        <div style={{minHeight:"100vh",background:`linear-gradient(135deg,${C.nav} 0%,#1A5FAD 100%)`,
-          display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <Card style={{width:380,padding:40}}>
-            <div style={{textAlign:"center",marginBottom:32}}>
-              <div style={{fontSize:36,marginBottom:8}}>🏥</div>
-              <div style={{fontSize:22,fontWeight:800,color:C.text,letterSpacing:"-0.02em"}}>SAD·BH</div>
-              <div style={{fontSize:13,color:C.textSec,marginTop:4}}>Serviço de Atenção Domiciliar</div>
-              <div style={{fontSize:11,color:C.textMuted}}>Secretaria Municipal de Saúde · BH</div>
-            </div>
-            <div style={{marginBottom:16}}>
-              <Input label="E-mail institucional" value={email} onChange={setEmail}
-                placeholder="usuario@smsa.belo-horizonte.mg.gov.br"
-                error={err} required/>
-              <input type="text" onKeyDown={handleKey} style={{position:"absolute",opacity:0,pointerEvents:"none"}}/>
-            </div>
-            <Btn onClick={handleLogin} size="lg" style={{width:"100%",justifyContent:"center"}}>
-              Entrar no Sistema
-            </Btn>
-            <div style={{marginTop:20,padding:12,background:C.primaryLt,borderRadius:C.radiusXs,
-              fontSize:11,color:C.primary}}>
-              <strong>Demo:</strong> equipe@demo.sad · coord@demo.sad
-            </div>
-          </Card>
-        </div>
-      );
-    };
-
-    // ── Dashboard Equipe ──────────────────────────────────────────────
-    const DashboardEquipe = ({pacientes,equipe}) => {
-      const ativos = pacientes.filter(p=>p.status==="ativo"&&p.equipe===equipe);
-      const emAval  = pacientes.filter(p=>p.status==="avaliacao"&&p.equipe===equipe);
-      const diasMedio = ativos.reduce((s,p)=>{
-        const d=diasAdmitido(p.admissao); return d!==null?s+d:s;
-      },0) / (ativos.length||1);
-      const totalDisps = DISPS_KEYS.reduce((s,k)=>s+ativos.filter(p=>p[k]).length,0);
-
-      return (
-        <div style={{padding:24,display:"flex",flexDirection:"column",gap:20}}>
-          <div>
-            <h2 style={{fontSize:20,fontWeight:800,color:C.text,margin:0}}>{equipe}</h2>
-            <p style={{color:C.textSec,margin:"4px 0 0",fontSize:13}}>Painel de acompanhamento — {new Date().toLocaleDateString("pt-BR")}</p>
-          </div>
-
-          <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-            <KPI label="Ativos" value={ativos.length} icon="👥" color={C.success}/>
-            <KPI label="Em Avaliação" value={emAval.length} icon="🔍" color={C.warning}/>
-            <KPI label="Dias (média)" value={Math.round(diasMedio)} sub="permanência" icon="📅" color={C.primary}/>
-            <KPI label="Procedimentos" value={totalDisps} sub="dispositivos ativos" icon="🩺" color="#7C3AED"/>
-          </div>
-
-          <Card style={{padding:20}}>
-            <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 16px"}}>Dispositivos Ativos</h3>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              {DISPS_KEYS.map(k=>{
-                const count = ativos.filter(p=>p[k]).length;
-                const pct   = ativos.length ? (count/ativos.length)*100 : 0;
-                return (
-                  <div key={k}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                      <span style={{fontSize:12,color:C.textSec}}>{DISPS_ICONS[k]} {DISPS_LABELS[k]}</span>
-                      <span style={{fontSize:12,fontWeight:700,color:count>0?C.primary:C.textMuted}}>{count}</span>
-                    </div>
-                    <div style={{height:5,borderRadius:3,background:C.neutralBg,overflow:"hidden"}}>
-                      <div style={{height:"100%",width:`${pct}%`,background:C.primary,
-                        borderRadius:3,transition:"width 0.4s"}}/>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-
-          <Card style={{padding:20}}>
-            <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 16px"}}>Pacientes Ativos</h3>
-            {ativos.length===0&&<p style={{color:C.textMuted,fontSize:13}}>Nenhum paciente ativo.</p>}
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {ativos.map(p=>{
-                const dias = diasAdmitido(p.admissao);
-                const dispsAtivos = DISPS_KEYS.filter(k=>p[k]);
-                return (
-                  <div key={p.id} style={{display:"flex",alignItems:"center",gap:12,
-                    padding:"10px 14px",borderRadius:C.radiusXs,
-                    border:`1px solid ${C.border}`,background:C.surfaceAlt}}>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:13,fontWeight:700,color:C.text}}>{p.nome}</div>
-                      <div style={{fontSize:11,color:C.textMuted,marginTop:2}}>
-                        {p.id} · {p.cid} · {dias!==null?`${dias}d`:"—"}
-                      </div>
-                    </div>
-                    <div style={{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"flex-end"}}>
-                      {dispsAtivos.slice(0,4).map(k=>(
-                        <span key={k} style={{fontSize:10,padding:"2px 6px",borderRadius:12,
-                          background:C.primaryLt,color:C.primary,fontWeight:600}}>{k}</span>
-                      ))}
-                      {dispsAtivos.length>4&&<span style={{fontSize:10,color:C.textMuted}}>+{dispsAtivos.length-4}</span>}
-                    </div>
-                    <ComplexBadge val={p.complexidade}/>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-        </div>
-      );
-    };
-
-    // ── Dashboard Coordenação ─────────────────────────────────────────
-    const DashboardCoordenacao = ({pacientes,onSelectEquipe}) => {
-      const totalATB= EQUIPE_STATS.reduce((s,e)=>s+e.ATB,0);
-      const mediaATB= totalATB/22;
-
-      return (
-        <div style={{padding:24,display:"flex",flexDirection:"column",gap:20}}>
-          <div>
-            <h2 style={{fontSize:20,fontWeight:800,color:C.text,margin:0}}>Painel Geral — Coordenação</h2>
-            <p style={{color:C.textSec,margin:"4px 0 0",fontSize:13}}>22 equipes · {new Date().toLocaleDateString("pt-BR")}</p>
-          </div>
-
-          <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-            <KPI label="Pacientes Ativos" value={EQUIPE_STATS.reduce((s,e)=>s+e.ativos,0)} icon="👥" color={C.success}/>
-            <KPI label="Em Avaliação" value={EQUIPE_STATS.reduce((s,e)=>s+e.avaliados,0)} icon="🔍" color={C.warning}/>
-            <KPI label="ATB Parenteral" value={totalATB} sub="total de equipes" icon="🧬" color={C.danger}/>
-            <KPI label="Motoristas" value={EQUIPE_STATS.reduce((s,e)=>s+e.motoristas,0)} icon="🚑" color={C.primary}/>
-          </div>
-
-          <Card style={{padding:20}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:0}}>Mapa de Carga — 22 Equipes</h3>
-              <div style={{display:"flex",gap:8,fontSize:11,color:C.textSec}}>
-                <span>🟢 Normal</span><span>🟡 Atenção</span><span>🔴 Sobrecarga</span>
+      {/* Comparativo mensal */}
+      <Card style={{padding:18}}>
+        <div style={{fontSize:13,fontWeight:900,color:C.text,marginBottom:14}}>Comparativo — Mês Atual × Anterior</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:8}}>
+          {[
+            {label:"Admitidos",atu:STATS_ATU.admitidos,ant:STATS_ANT.admitidos},
+            {label:"Avaliados",atu:STATS_ATU.avaliados,ant:STATS_ANT.avaliados},
+            {label:"Visitas",atu:STATS_ATU.visitas,ant:STATS_ANT.visitas},
+            {label:"Altas",atu:STATS_ATU.altas,ant:STATS_ANT.altas},
+            {label:"Intercorrências",atu:STATS_ATU.intercorrencias,ant:STATS_ANT.intercorrencias},
+            {label:"Óbitos",atu:STATS_ATU.obitos,ant:STATS_ANT.obitos},
+            {label:"Não Elegíveis",atu:STATS_ATU.naoElegiveis,ant:STATS_ANT.naoElegiveis},
+          ].map(({label,atu,ant})=>{
+            const d=atu-ant;
+            const isGood=(label==="Óbitos"||label==="Intercorrências"||label==="Não Elegíveis")?d<=0:d>=0;
+            return (
+              <div key={label} style={{padding:"10px 12px",borderRadius:C.radiusXs,background:C.surfaceAlt,border:`1px solid ${C.border}`}}>
+                <div style={{fontSize:10,fontWeight:900,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.06em"}}>{label}</div>
+                <div style={{fontSize:22,fontWeight:900,color:C.text,marginTop:2}}>{atu}</div>
+                <div style={{fontSize:10,fontWeight:900,color:d===0?C.neutral:isGood?C.success:C.danger}}>
+                  {d===0?"=":(d>0?"▲":"▼")} {Math.abs(d)} vs {ant}
+                </div>
               </div>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:8}}>
-              {EQUIPE_STATS.map(e=>{
-                const atbRatio  = mediaATB>0 ? e.ATB/mediaATB : 1;
-                const isAlert   = atbRatio >= 1.3;
-                const isCrit    = atbRatio >= 1.7;
-                const bg        = isCrit?C.dangerBg:isAlert?C.warningBg:C.successBg;
-                const bd        = isCrit?C.dangerBd:isAlert?C.warningBd:C.successBd;
-                const tc        = isCrit?C.danger:isAlert?C.warning:C.success;
-                return (
-                  <button key={e.nome} onClick={()=>onSelectEquipe(e.nome)}
-                    style={{padding:"10px 12px",borderRadius:C.radiusXs,background:bg,
-                      border:`1.5px solid ${bd}`,cursor:"pointer",textAlign:"left",
-                      transition:"all 0.15s"}}>
-                    <div style={{fontSize:11,fontWeight:700,color:tc,marginBottom:4}}>{e.nome}</div>
-                    <div style={{fontSize:11,color:C.textSec,display:"flex",flexDirection:"column",gap:2}}>
-                      <span>👥 {e.ativos} ativos</span>
-                      <span>🧬 {e.ATB} ATB</span>
-                      <span>🩹 {e.CurativoEsp} cur.</span>
-                      <span>🚑 {e.motoristas} mot.</span>
-                    </div>
-                    {isCrit&&<div style={{fontSize:10,fontWeight:700,color:C.danger,marginTop:4}}>⚠ SOBRECARGA ATB</div>}
-                    {isAlert&&!isCrit&&<div style={{fontSize:10,fontWeight:700,color:C.warning,marginTop:4}}>⚡ ATENÇÃO</div>}
-                  </button>
-                );
-              })}
-            </div>
-          </Card>
+            );
+          })}
         </div>
-      );
-    };
+      </Card>
 
-    // ── Lista de Pacientes ────────────────────────────────────────────
-    const PacientesList = ({pacientes,equipe,role,onAdmitir,onNegativa}) => {
-      const [busca,setBusca]       = useState("");
-      const [filtro,setFiltro]     = useState("todos");
-      const [expandido,setExpandido]= useState(null);
+      {/* Dispositivos e Procedimentos Ativos */}
+      <Card style={{padding:18}}>
+        <div style={{fontSize:13,fontWeight:900,color:C.text,marginBottom:14}}>Dispositivos e Procedimentos Ativos</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {DISPS_KEYS.map(k=>{
+            const count=ativos.filter(p=>p[k]).length;
+            const pct=ativos.length?(count/ativos.length)*100:0;
+            return (
+              <div key={k}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                  <span style={{fontSize:12,color:C.textSec}}>{DISPS_ICONS[k]} {DISPS_LABELS[k]}</span>
+                  <span style={{fontSize:12,fontWeight:900,color:count>0?C.primary:C.textMuted}}>{count}</span>
+                </div>
+                <div style={{height:4,borderRadius:2,background:C.neutralBg}}>
+                  <div style={{height:"100%",width:`${pct}%`,background:C.primary,borderRadius:2,transition:"width 0.4s"}}/>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
 
-      const lista = useMemo(()=>pacientes.filter(p=>{
-        const matchEquipe = role==="equipe" ? p.equipe===equipe : true;
-        const matchFiltro = filtro==="todos" || p.status===filtro;
-        const q = busca.toLowerCase();
-        const matchBusca = !busca || p.id.toLowerCase().includes(q) ||
-          p.nome.toLowerCase().includes(q) || (p.cid||"").toLowerCase().includes(q);
-        return matchEquipe && matchFiltro && matchBusca;
-      }),[pacientes,equipe,role,filtro,busca]);
+      {/* Pacientes ativos — Nome, Idade, Permanência */}
+      <Card style={{padding:18}}>
+        <div style={{fontSize:13,fontWeight:900,color:C.text,marginBottom:14}}>Pacientes Ativos</div>
+        {ativos.length===0&&<div style={{color:C.textMuted,fontSize:13}}>Nenhum paciente ativo.</div>}
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {ativos.map(p=>{
+            const dias=diasAdmitido(p.admissao);
+            const idade=calcIdade(p.nascimento);
+            const alertDias=dias!=null&&dias>60;
+            const warnDias=dias!=null&&dias>30&&dias<=60;
+            const disps=DISPS_KEYS.filter(k=>p[k]);
+            return (
+              <div key={p.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 13px",
+                borderRadius:C.radiusXs,border:`1px solid ${C.border}`,background:C.surfaceAlt}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:900,color:C.text}}>{p.nome}</div>
+                  <div style={{fontSize:11,color:C.textMuted,marginTop:1}}>
+                    {idade!=null?`${idade} anos · `:""}Prontuário: {p.id}
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"flex-end",maxWidth:180}}>
+                  {disps.slice(0,3).map(k=>(
+                    <span key={k} style={{fontSize:10,padding:"2px 6px",borderRadius:10,background:C.primaryLt,color:C.primaryDk,fontWeight:900}}>{k}</span>
+                  ))}
+                  {disps.length>3&&<span style={{fontSize:10,color:C.textMuted}}>+{disps.length-3}</span>}
+                </div>
+                {dias!=null&&(
+                  <div style={{padding:"4px 10px",borderRadius:10,fontWeight:900,fontSize:12,whiteSpace:"nowrap",
+                    background:alertDias?C.dangerBg:warnDias?C.orangeBg:C.primaryLt,
+                    color:alertDias?C.danger:warnDias?C.orange:C.primaryDk}}>
+                    {dias}d
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Card>
 
-      return (
-        <div style={{padding:24,display:"flex",flexDirection:"column",gap:16}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
-            <h2 style={{fontSize:20,fontWeight:800,color:C.text,margin:0}}>Pacientes</h2>
-          </div>
-
-          <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
-            <input value={busca} onChange={e=>setBusca(e.target.value)}
-              placeholder="🔍  Buscar por prontuário, nome ou CID..."
-              style={{flex:1,minWidth:200,padding:"9px 14px",borderRadius:C.radiusSm,
-                border:`1.5px solid ${C.border}`,fontSize:13,outline:"none",background:C.surface}}/>
-            {["todos","ativo","avaliacao","alta","obito"].map(f=>(
-              <Chip key={f} label={{todos:"Todos",ativo:"Ativos",avaliacao:"Em Avaliação",
-                alta:"Altas",obito:"Óbitos"}[f]}
-                active={filtro===f} onClick={()=>setFiltro(f)}/>
+      {/* Transferências recebidas pendentes */}
+      {transfsRecebidas.length>0&&(
+        <Card style={{padding:18,border:`2px solid ${C.orangeBd}`}}>
+          <div style={{fontSize:13,fontWeight:900,color:C.orange,marginBottom:12}}>📤 Transferências Recebidas ({transfsRecebidas.length})</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {transfsRecebidas.map(p=>(
+              <div key={p.id} style={{padding:"10px 13px",borderRadius:C.radiusXs,background:C.orangeBg,border:`1px solid ${C.orangeBd}`}}>
+                <div style={{fontSize:13,fontWeight:900}}>{p.nome}</div>
+                <div style={{fontSize:11,color:C.textSec,margin:"2px 0 8px"}}>
+                  De: {p.transferenciaOrig} · {p.transferenciaNote||"Sem observações"}
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <Btn variant="success" size="sm" onClick={()=>aceitarTransf(p.id)}>✅ Aceitar</Btn>
+                  <Btn variant="secondary" size="sm" onClick={()=>recusarTransf(p.id)}>❌ Recusar</Btn>
+                </div>
+              </div>
             ))}
           </div>
+        </Card>
+      )}
 
-          <div style={{fontSize:12,color:C.textMuted}}>{lista.length} registro(s)</div>
+      {/* Censo Diário — Motoristas */}
+      <Card style={{padding:18}}>
+        <div style={{fontSize:13,fontWeight:900,color:C.text,marginBottom:14}}>Censo do Dia — Motoristas em Plantão</div>
+        <div style={{display:"flex",align:"center",gap:14,marginBottom:14,flexWrap:"wrap"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:12,fontWeight:900,color:C.textMuted}}>Nº DE MOTORISTAS</span>
+            <select value={numMot} onChange={e=>{const n=parseInt(e.target.value);setNumMot(n);setMotoristas(Array.from({length:n},(_,i)=>motoristas[i]||{km:"",horas:""}));}}
+              style={{padding:"6px 10px",borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,fontSize:13,fontFamily:"inherit"}}>
+              {[1,2,3,4,5].map(n=><option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+          {motoristas.slice(0,numMot).map((m,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:C.surfaceAlt,borderRadius:C.radiusXs,border:`1px solid ${C.border}`}}>
+              <span style={{fontSize:12,fontWeight:900,color:C.textMuted,minWidth:70}}>Motorista {i+1}</span>
+              <Input label="Km hoje" value={m.km} onChange={v=>updateMot(i,"km",v)} type="number" placeholder="0" style={{maxWidth:90}}/>
+              <Input label="Horas hoje" value={m.horas} onChange={v=>updateMot(i,"horas",v)} type="number" placeholder="0" style={{maxWidth:90}}/>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          <div style={{padding:"10px 14px",background:C.primaryLt,borderRadius:C.radiusXs}}>
+            <div style={{fontSize:10,fontWeight:900,color:C.primaryDk,textTransform:"uppercase"}}>Km Acumulado no Mês</div>
+            <div style={{fontSize:22,fontWeight:900,color:C.primary}}>{(kmMes).toFixed(0)} km</div>
+            <div style={{fontSize:10,color:C.textMuted}}>Hoje: {totalKm.toFixed(0)} km</div>
+          </div>
+          <div style={{padding:"10px 14px",background:C.blueBg,borderRadius:C.radiusXs}}>
+            <div style={{fontSize:10,fontWeight:900,color:C.blue,textTransform:"uppercase"}}>Horas Acumuladas no Mês</div>
+            <div style={{fontSize:22,fontWeight:900,color:C.blue}}>{(horasMes).toFixed(0)} h</div>
+            <div style={{fontSize:10,color:C.textMuted}}>Hoje: {totalHoras.toFixed(0)} h</div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
 
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {lista.length===0&&<Card style={{padding:32,textAlign:"center"}}>
-              <div style={{fontSize:32,marginBottom:8}}>🔍</div>
-              <div style={{color:C.textMuted}}>Nenhum paciente encontrado</div>
-            </Card>}
-            {lista.map(p=>{
-              const expanded = expandido===p.id;
-              const dias = diasAdmitido(p.admissao);
-              const dispsAtivos = DISPS_KEYS.filter(k=>p[k]);
-              return (
-                <Card key={p.id} style={{overflow:"hidden"}}>
-                  <button onClick={()=>setExpandido(expanded?null:p.id)}
-                    style={{width:"100%",padding:"14px 18px",background:"none",border:"none",
-                      cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12}}>
-                    <div style={{flex:1}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                        <span style={{fontSize:14,fontWeight:700,color:C.text}}>{p.nome}</span>
-                        <Badge status={p.status}/>
-                        {p.complexidade>0&&<ComplexBadge val={p.complexidade}/>}
-                      </div>
-                      <div style={{fontSize:12,color:C.textMuted,marginTop:3}}>
-                        📋 {p.id} · 🩺 {p.cid||"—"} · {p.equipe}
-                        {dias!==null&&` · ${dias} dias`}
-                      </div>
-                    </div>
-                    <span style={{color:C.textMuted,fontSize:16}}>{expanded?"▲":"▼"}</span>
-                  </button>
-                  {expanded&&(
-                    <div style={{padding:"0 18px 18px",borderTop:`1px solid ${C.border}`}}>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginTop:14}}>
-                        <div><div style={{fontSize:11,color:C.textMuted}}>Prontuário</div><div style={{fontSize:13,fontWeight:700}}>{p.id}</div></div>
-                        <div><div style={{fontSize:11,color:C.textMuted}}>Data de Nasc.</div><div style={{fontSize:13}}>{p.nascimento}</div></div>
-                        <div><div style={{fontSize:11,color:C.textMuted}}>Telefone</div><div style={{fontSize:13}}>{p.telefone||"—"}</div></div>
-                        <div><div style={{fontSize:11,color:C.textMuted}}>CID</div><div style={{fontSize:13}}>{p.cid||"—"}</div></div>
-                        <div><div style={{fontSize:11,color:C.textMuted}}>Perfil</div><div style={{fontSize:13}}>{p.perfil||"—"}</div></div>
-                        <div><div style={{fontSize:11,color:C.textMuted}}>Admissão</div><div style={{fontSize:13}}>{p.admissao||"—"}</div></div>
-                        <div style={{gridColumn:"1/-1"}}><div style={{fontSize:11,color:C.textMuted}}>Motivo de encaminhamento</div><div style={{fontSize:13}}>{p.motivo||"—"}</div></div>
-                      </div>
-                      {dispsAtivos.length>0&&(
-                        <div style={{marginTop:14}}>
-                          <div style={{fontSize:11,fontWeight:600,color:C.textMuted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.06em"}}>Dispositivos/Procedimentos</div>
-                          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                            {dispsAtivos.map(k=>(
-                              <span key={k} style={{fontSize:12,padding:"4px 10px",borderRadius:12,
-                                background:C.primaryLt,color:C.primary,fontWeight:600}}>
-                                {DISPS_ICONS[k]} {DISPS_LABELS[k]}
-                              </span>
-                            ))}
+/* ══════════════════════════════════════════════════════
+   ABA PACIENTES
+══════════════════════════════════════════════════════ */
+const PacientesList=({pacientes,equipe,role,setPacientes,userEmail})=>{
+  const [busca,setBusca]=useState("");
+  const [filtro,setFiltro]=useState("todos");
+  const [expandido,setExpandido]=useState(null);
+  const [altaAlvo,setAltaAlvo]=useState(null);
+  const [transferAlvo,setTransferAlvo]=useState(null);
+  const [tabPac,setTabPac]=useState({});
+
+  const lista=useMemo(()=>{
+    const base=role==="equipe"
+      ?pacientes.filter(p=>p.equipe===equipe)
+      :pacientes;
+    return base
+      .filter(p=>{
+        const mf=filtro==="todos"||p.status===filtro;
+        const q=busca.toLowerCase();
+        const mb=!busca||p.id.toLowerCase().includes(q)||p.nome.toLowerCase().includes(q)||(p.cid||"").toLowerCase().includes(q);
+        return mf&&mb;
+      })
+      .sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"));
+  },[pacientes,equipe,role,filtro,busca]);
+
+  const handleAlta=(p)=>setAltaAlvo(p);
+  const confirmarAlta=(p,dadosAlta)=>{
+    setPacientes(prev=>prev.map(x=>x.id===p.id?{...x,status:dadosAlta.novoStatus,...dadosAlta}:x));
+    setAltaAlvo(null); setExpandido(null);
+  };
+  const handleTransfer=(p)=>setTransferAlvo(p);
+  const enviarTransfer=(id,dest,note)=>{
+    setPacientes(prev=>prev.map(p=>p.id===id?{...p,status:"transferencia",transferenciaDest:dest,transferenciaOrig:equipe,transferenciaNote:note}:p));
+    setTransferAlvo(null);
+  };
+
+  const filtroLabels={todos:"Todos",ativo:"Ativos",avaliacao:"Em Avaliação",alta:"Alta",obito:"Óbito",transferencia:"Transferência"};
+
+  return (
+    <div style={{padding:24,display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{fontSize:20,fontWeight:900,color:C.text}}>Pacientes</div>
+
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+        <input value={busca} onChange={e=>setBusca(e.target.value)}
+          placeholder="🔍  Buscar por prontuário, nome ou CID..."
+          style={{flex:1,minWidth:200,padding:"8px 13px",borderRadius:C.radiusSm,
+            border:`1.5px solid ${C.border}`,fontSize:13,fontFamily:"inherit",fontWeight:300,outline:"none"}}/>
+        {Object.entries(filtroLabels).map(([k,v])=>(
+          <button key={k} onClick={()=>setFiltro(k)}
+            style={{padding:"5px 11px",borderRadius:15,border:`1.5px solid ${filtro===k?C.primary:C.border}`,
+              background:filtro===k?C.primaryLt:"transparent",color:filtro===k?C.primaryDk:C.textSec,
+              fontSize:11,fontWeight:filtro===k?900:300,cursor:"pointer",fontFamily:"inherit"}}>
+            {v}
+          </button>
+        ))}
+      </div>
+
+      <div style={{fontSize:11,color:C.textMuted}}>{lista.length} registro(s) · ordem alfabética</div>
+
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+        {lista.length===0&&<Card style={{padding:32,textAlign:"center"}}><div style={{color:C.textMuted}}>Nenhum paciente encontrado</div></Card>}
+        {lista.map(p=>{
+          const exp=expandido===p.id;
+          const dias=diasAdmitido(p.admissao);
+          const idade=calcIdade(p.nascimento);
+          const disps=DISPS_KEYS.filter(k=>p[k]);
+          const tab=tabPac[p.id]||"dados";
+          const alertDias=dias!=null&&dias>60;
+          const warnDias=dias!=null&&dias>30&&dias<=60;
+
+          return (
+            <Card key={p.id} style={{overflow:"hidden"}}>
+              {/* Cabeçalho */}
+              <button onClick={()=>setExpandido(exp?null:p.id)}
+                style={{width:"100%",padding:"13px 16px",background:"none",border:"none",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+                    <span style={{fontSize:14,fontWeight:900,color:C.text}}>{p.nome}</span>
+                    <Badge status={p.status}/>
+                    {p.ad&&<AdBadge val={p.ad}/>}
+                  </div>
+                  <div style={{fontSize:11,color:C.textMuted,marginTop:2}}>
+                    {idade!=null?`${idade} anos · `:""}📋 {p.id} · {p.equipe}
+                    {p.cid&&` · ${p.cid}`}
+                  </div>
+                </div>
+                {dias!=null&&(
+                  <div style={{padding:"4px 10px",borderRadius:10,fontWeight:900,fontSize:12,whiteSpace:"nowrap",
+                    background:alertDias?C.dangerBg:warnDias?C.orangeBg:C.primaryLt,
+                    color:alertDias?C.danger:warnDias?C.orange:C.primaryDk}}>
+                    {dias}d
+                  </div>
+                )}
+                <span style={{color:C.textMuted,fontSize:14}}>{exp?"▲":"▼"}</span>
+              </button>
+
+              {exp&&(
+                <div style={{borderTop:`1px solid ${C.border}`}}>
+                  {/* Tabs */}
+                  <div style={{display:"flex",gap:0,borderBottom:`1px solid ${C.border}`,background:C.surfaceAlt}}>
+                    {[["dados","📋 Dados"],["disps","🩺 Dispositivos"],["ativ","📅 Atividades"],["tele","📡 Telemonitoramento"]].map(([k,lbl])=>(
+                      <button key={k} onClick={()=>setTabPac(prev=>({...prev,[p.id]:k}))}
+                        style={{padding:"8px 14px",border:"none",borderBottom:tab===k?`2px solid ${C.primary}`:"2px solid transparent",
+                          background:"transparent",cursor:"pointer",fontSize:11,fontWeight:tab===k?900:300,
+                          color:tab===k?C.primaryDk:C.textMuted,fontFamily:"inherit"}}>
+                        {lbl}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{padding:16}}>
+                    {tab==="dados"&&(
+                      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+                          {[["Prontuário",p.id],["Nascimento",p.nascimento],["Sexo",p.sexo||"—"],
+                            ["CPF",p.cpf||"—"],["Telefone",p.telefone||"—"],["Cuidador",p.nomeCuidador||"—"],
+                            ["Tel. Cuidador",p.telCuidador||"—"],["Docs. Recebidos",p.dataDocumentos||"—"],["Admissão",p.admissao||"—"],
+                          ].map(([l,v])=>(
+                            <div key={l}><div style={{fontSize:10,fontWeight:900,color:C.textMuted,textTransform:"uppercase"}}>{l}</div>
+                            <div style={{fontSize:12,color:C.text,marginTop:1}}>{v}</div></div>
+                          ))}
+                        </div>
+                        <Divider label="Clínico"/>
+                        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+                          {[["CID Principal",p.cid||"—"],["CID Crônico",p.cidCronico||"—"],["CID Internação",p.cidInternacao||"—"],
+                            ["Perfil Epidemiológico",p.perfil||"—"],["Cuidados Paliativos",p.paliativo||"NÃO"],["Score",p.score||"—"],
+                            ["O2 Indicação",p.o2Indicacao||"—"],["Classificação AD",p.ad||"—"],["Origem",`${p.origem||"—"}${p.origemDetalhe?" — "+p.origemDetalhe:""}`],
+                          ].map(([l,v])=>(
+                            <div key={l}><div style={{fontSize:10,fontWeight:900,color:C.textMuted,textTransform:"uppercase"}}>{l}</div>
+                            <div style={{fontSize:12,color:C.text,marginTop:1}}>{v}</div></div>
+                          ))}
+                        </div>
+                        {p.comorbidades?.length>0&&(
+                          <div>
+                            <div style={{fontSize:10,fontWeight:900,color:C.textMuted,textTransform:"uppercase",marginBottom:6}}>Comorbidades / DCNTs</div>
+                            <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                              {p.comorbidades.map(c=>(
+                                <span key={c} style={{padding:"2px 8px",borderRadius:10,background:C.neutralBg,border:`1px solid ${C.border}`,fontSize:11,fontWeight:900}}>{c}</span>
+                              ))}
+                            </div>
                           </div>
+                        )}
+                        <div><div style={{fontSize:10,fontWeight:900,color:C.textMuted,textTransform:"uppercase"}}>Motivo de Encaminhamento</div>
+                        <div style={{fontSize:12,color:C.text,marginTop:1}}>{p.motivo||"—"}</div></div>
+                      </div>
+                    )}
+
+                    {tab==="disps"&&(
+                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:6}}>
+                          {DISPS_KEYS.map(k=>(
+                            <div key={k} style={{padding:"8px 11px",borderRadius:C.radiusXs,
+                              border:`1.5px solid ${p[k]?C.primary:C.border}`,
+                              background:p[k]?C.primaryLt:C.surfaceAlt}}>
+                              <div style={{fontSize:12,fontWeight:p[k]?900:300,color:p[k]?C.primaryDk:C.textMuted}}>
+                                {DISPS_ICONS[k]} {DISPS_LABELS[k]}
+                              </div>
+                              <div style={{fontSize:10,color:p[k]?C.primary:C.neutral,fontWeight:900}}>{p[k]?"ATIVO":"INATIVO"}</div>
+                            </div>
+                          ))}
                         </div>
-                      )}
-                      {p.status==="avaliacao"&&(
-                        <div style={{display:"flex",gap:8,marginTop:14}}>
-                          <Btn variant="success" onClick={()=>onAdmitir(p)}>✅ Admitir Paciente</Btn>
-                          <Btn variant="secondary" onClick={()=>onNegativa(p)}>❌ Não Elegível</Btn>
+                        {p.ATB&&(
+                          <div style={{padding:"10px 13px",background:C.yellowBg,borderRadius:C.radiusXs,border:`1px solid ${C.yellow}`}}>
+                            <div style={{fontSize:11,fontWeight:900,color:C.brown}}>ANTIBIOTICOTERAPIA PARENTERAL</div>
+                            <div style={{fontSize:13,marginTop:4}}>ATB 1: <strong>{p.atb1||"—"}</strong></div>
+                            {p.atb2&&<div style={{fontSize:13}}>ATB 2: <strong>{p.atb2}</strong></div>}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {tab==="ativ"&&(
+                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                        <div style={{fontSize:12,color:C.textMuted,marginBottom:6}}>Atividades registradas no mês atual (demonstração)</div>
+                        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:8}}>
+                          {[["Médico","🩺",4],["Enfermagem","👩‍⚕️",12],["Técnico Enf.","🧑‍⚕️",18],["EMAP","🏃",3],["Fisioterapia","💪",8],["Fonoaudiologia","🗣️",2]].map(([cat,ic,n])=>(
+                            <div key={cat} style={{padding:"10px 12px",borderRadius:C.radiusXs,background:C.surfaceAlt,border:`1px solid ${C.border}`}}>
+                              <div style={{fontSize:12,color:C.textSec}}>{ic} {cat}</div>
+                              <div style={{fontSize:20,fontWeight:900,color:C.primary,marginTop:3}}>{n}</div>
+                              <div style={{fontSize:10,color:C.textMuted}}>visitas</div>
+                            </div>
+                          ))}
                         </div>
-                      )}
+                      </div>
+                    )}
+
+                    {tab==="tele"&&(
+                      <div style={{padding:"20px",textAlign:"center",color:C.textMuted}}>
+                        <div style={{fontSize:32,marginBottom:8}}>📡</div>
+                        <div style={{fontSize:13}}>Telemonitoramento em implementação.</div>
+                        <div style={{fontSize:11,marginTop:4}}>Funcionalidade disponível na próxima versão.</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Ações */}
+                  {p.status==="ativo"&&(
+                    <div style={{padding:"10px 16px",borderTop:`1px solid ${C.border}`,display:"flex",gap:8,flexWrap:"wrap"}}>
+                      <Btn variant="danger" size="sm" onClick={()=>handleAlta(p)}>🏁 Registrar Alta / Desfecho</Btn>
+                      <Btn variant="orange" size="sm" onClick={()=>handleTransfer(p)}>📤 Transferir Equipe</Btn>
                     </div>
                   )}
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      );
-    };
-
-    // ── Formulário de Admissão ────────────────────────────────────────
-    const FORM_INIT = {
-      nome:"",nascimento:"",cpf:"",telefone:"",equipe:"Equipe 01",
-      cid:"",perfil:"",complexidade:"1",motivo:"",
-      ...Object.fromEntries(DISPS_KEYS.map(k=>[k,false])),
-    };
-
-    const AdmissaoForm = ({equipeDefault,onSave,role}) => {
-      const [form,setForm]   = useState({...FORM_INIT,equipe:equipeDefault||"Equipe 01"});
-      const [errors,setErrors]= useState({});
-      const [saved,setSaved]  = useState(false);
-      const [loading,setLoading]= useState(false);
-
-      const prontuario = gerarProntuario(form.nome,form.nascimento);
-
-      const set = (k,v) => setForm(f=>({...f,[k]:v}));
-
-      const validate = () => {
-        const e = {};
-        if (!form.nome.trim())       e.nome       = "Campo obrigatório";
-        if (!form.nascimento.trim()) e.nascimento  = "Campo obrigatório";
-        if (!form.cid.trim())        e.cid        = "Campo obrigatório";
-        if (!prontuario)             e.nome       = "Nome deve ter ≥ 2 palavras";
-        setErrors(e);
-        return Object.keys(e).length===0;
-      };
-
-      const handleSubmit = async () => {
-        if (!validate()) return;
-        setLoading(true);
-        await new Promise(r=>setTimeout(r,800));
-        const paciente = {
-          ...form,
-          id:prontuario,
-          admissao:new Date().toLocaleDateString("pt-BR"),
-          status:"ativo",
-        };
-        onSave(paciente);
-        setForm({...FORM_INIT,equipe:equipeDefault||"Equipe 01"});
-        setSaved(true);
-        setLoading(false);
-        setTimeout(()=>setSaved(false),3000);
-      };
-
-      return (
-        <div style={{padding:24,maxWidth:760}}>
-          <h2 style={{fontSize:20,fontWeight:800,color:C.text,margin:"0 0 4px"}}>Nova Admissão</h2>
-          <p style={{color:C.textSec,margin:"0 0 24px",fontSize:13}}>Preencha nome e data de nascimento para gerar o prontuário automaticamente.</p>
-
-          {prontuario&&(
-            <div style={{marginBottom:20,padding:"14px 18px",borderRadius:C.radiusSm,
-              background:C.primaryLt,border:`1.5px solid ${C.primary}`,
-              display:"flex",alignItems:"center",gap:12}}>
-              <div>
-                <div style={{fontSize:11,fontWeight:700,color:C.primary,textTransform:"uppercase",letterSpacing:"0.06em"}}>Prontuário Gerado</div>
-                <div style={{fontSize:22,fontWeight:900,color:C.primary,letterSpacing:"0.04em"}}>{prontuario}</div>
-              </div>
-              <div style={{fontSize:11,color:C.primary,marginLeft:"auto"}}>ID imutável após admissão</div>
-            </div>
-          )}
-
-          <div style={{display:"flex",flexDirection:"column",gap:20}}>
-            <Divider label="Identificação"/>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-              <div style={{gridColumn:"1/-1"}}>
-                <Input label="Nome Completo" value={form.nome} onChange={v=>set("nome",v)}
-                  mask="name" required error={errors.nome} placeholder="Nome completo do paciente"/>
-              </div>
-              <Input label="Data de Nascimento" value={form.nascimento} onChange={v=>set("nascimento",v)}
-                mask="date" required error={errors.nascimento} placeholder="DD/MM/AAAA"/>
-              <Input label="CPF" value={form.cpf} onChange={v=>set("cpf",v)}
-                mask="cpf" placeholder="000.000.000-00"/>
-              <Input label="Telefone / Cuidador" value={form.telefone} onChange={v=>set("telefone",v)}
-                mask="phone" placeholder="(31) 99999-9999"/>
-              {role==="coordenacao"&&(
-                <Select label="Equipe Responsável" value={form.equipe} onChange={v=>set("equipe",v)}
-                  options={EQUIPES_LIST} required/>
+                  {p.status==="avaliacao"&&(
+                    <div style={{padding:"10px 16px",borderTop:`1px solid ${C.border}`,display:"flex",gap:8}}>
+                      <Btn variant="success" size="sm" onClick={()=>handleAlta(p)}>✅ Registrar Desfecho</Btn>
+                    </div>
+                  )}
+                </div>
               )}
-            </div>
+            </Card>
+          );
+        })}
+      </div>
 
-            <Divider label="Dados Clínicos"/>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
-              <Input label="CID" value={form.cid} onChange={v=>set("cid",v)}
-                mask="cid" required error={errors.cid} placeholder="J44.1"/>
-              <Input label="Perfil Epidemiológico" value={form.perfil} onChange={v=>set("perfil",v)}
-                placeholder="Ex: DPOC, Parkinson, Oncológico"/>
-              <Select label="Complexidade" value={form.complexidade} onChange={v=>set("complexidade",v)}
-                options={[{value:"1",label:"1 — Baixa"},{value:"2",label:"2 — Moderada"},
-                  {value:"3",label:"3 — Alta"},{value:"4",label:"4 — Crítica"}]} required/>
-              <div style={{gridColumn:"1/-1"}}>
-                <Input label="Motivo de Encaminhamento / Justificativa SAD" value={form.motivo}
-                  onChange={v=>set("motivo",v)} placeholder="Descreva a condição clínica que justifica o SAD"/>
-              </div>
-            </div>
+      {altaAlvo&&<AltaModal paciente={altaAlvo} onClose={()=>setAltaAlvo(null)} onConfirm={(d)=>confirmarAlta(altaAlvo,d)}/>}
+      {transferAlvo&&<TransferenciaModal paciente={transferAlvo} userEquipe={equipe} onClose={()=>setTransferAlvo(null)} onEnviar={enviarTransfer}/>}
+    </div>
+  );
+};
 
-            <Divider label="Dispositivos e Procedimentos"/>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:8}}>
-              {DISPS_KEYS.map(k=>(
-                <Toggle key={k} label={DISPS_LABELS[k]} icon={DISPS_ICONS[k]}
-                  checked={form[k]} onChange={v=>set(k,v)}/>
-              ))}
-            </div>
+/* ══════════════════════════════════════════════════════
+   FORMULÁRIO CLÍNICO COMPLETO (admissão)
+══════════════════════════════════════════════════════ */
+const FORM_CLINICO_INIT = {
+  cid:"",cidCronico:"",cidInternacao:"",perfil:"",ad:"AD1",score:"",
+  SVD:false,O2:false,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB:false,CurativoEsp:false,
+  atb1:"",atb2:"",o2Indicacao:"Não",paliativo:"NÃO",comorbidades:[],
+};
 
-            <div style={{display:"flex",gap:12,alignItems:"center",marginTop:8}}>
-              <Btn onClick={handleSubmit} size="lg" disabled={loading}>
-                {loading?"⏳ Registrando...":"✅ Admitir Paciente"}
-              </Btn>
-              <Btn variant="secondary" onClick={()=>{setForm({...FORM_INIT,equipe:equipeDefault||"Equipe 01"});setErrors({});}}>
-                Limpar
-              </Btn>
-              {saved&&<span style={{fontSize:13,color:C.success,fontWeight:600}}>✓ Paciente admitido com sucesso!</span>}
-            </div>
-          </div>
+const FormClinico=({form,onChange})=>{
+  const set=(k,v)=>onChange({...form,[k]:v});
+  const toggleCom=(c)=>onChange({...form,comorbidades:form.comorbidades.includes(c)?form.comorbidades.filter(x=>x!==c):[...form.comorbidades,c]});
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <Divider label="Classificação e CIDs"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12}}>
+        <Select label="Classificação AD" value={form.ad} onChange={v=>set("ad",v)} options={AD_OPTIONS} required/>
+        <Input label="CID Principal" value={form.cid} onChange={v=>set("cid",v)} mask="cid" required placeholder="J44.1"/>
+        <Input label="CID Principal Crônico" value={form.cidCronico} onChange={v=>set("cidCronico",v)} mask="cid" placeholder="J44.0"/>
+        <Input label="CID da Internação" value={form.cidInternacao} onChange={v=>set("cidInternacao",v)} mask="cid" placeholder=""/>
+        <div style={{gridColumn:"1/-1"}}>
+          <Select label="Perfil Epidemiológico / Doença Base" value={form.perfil} onChange={v=>set("perfil",v)}
+            options={DOENCAS_LIST} placeholder="Selecione" required/>
         </div>
-      );
-    };
+        <Input label="Score Clínico" value={form.score} onChange={v=>set("score",v)} type="number" placeholder="0"/>
+        <Select label="Indicação de Oxigenoterapia" value={form.o2Indicacao} onChange={v=>set("o2Indicacao",v)} options={O2_OPTIONS}/>
+        <Select label="Cuidados Paliativos" value={form.paliativo} onChange={v=>set("paliativo",v)} options={PALIATIVO_OPTIONS}/>
+      </div>
 
-    // ── Busca Ativa ───────────────────────────────────────────────────
-    const BUSCA_FORM_INIT = {nome:"",nascimento:"",cpf:"",telefone:"",equipe:"Equipe 01",motivo:""};
+      <Divider label="Dispositivos e Procedimentos"/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:7}}>
+        {DISPS_KEYS.map(k=>(
+          <Toggle key={k} label={DISPS_LABELS[k]} icon={DISPS_ICONS[k]} checked={form[k]} onChange={v=>set(k,v)}/>
+        ))}
+      </div>
 
-    const BuscaAtiva = ({equipeDefault,pacientes,role,onRegistrar,onAdmitir,onNegativa}) => {
-      const [form,setForm]   = useState({...BUSCA_FORM_INIT,equipe:equipeDefault||"Equipe 01"});
-      const [errors,setErrors]= useState({});
-      const [saved,setSaved]  = useState(false);
-      const [motivoNeg,setMotivoNeg]= useState({});
-      const set = (k,v) => setForm(f=>({...f,[k]:v}));
-      const prontuario = gerarProntuario(form.nome,form.nascimento);
+      {form.ATB&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,padding:"12px",background:C.yellowBg,borderRadius:C.radiusXs,border:`1px solid ${C.yellow}`}}>
+          <Select label="ATB 1 (obrigatório)" value={form.atb1} onChange={v=>set("atb1",v)}
+            options={ATB_LIST} placeholder="Selecione" required/>
+          <Select label="ATB 2 (opcional)" value={form.atb2} onChange={v=>set("atb2",v)}
+            options={["—",...ATB_LIST]}/>
+        </div>
+      )}
 
-      const emAval = pacientes.filter(p=>p.status==="avaliacao"&&(role==="equipe"?p.equipe===equipeDefault:true));
-      const negativas = pacientes.filter(p=>p.status==="negativa"&&(role==="equipe"?p.equipe===equipeDefault:true));
+      <Divider label="Comorbidades e DCNTs"/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:6}}>
+        {COMORBIDADES_LIST.map(c=>(
+          <label key={c} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 9px",
+            borderRadius:C.radiusXs,border:`1.5px solid ${form.comorbidades.includes(c)?C.blue:C.border}`,
+            background:form.comorbidades.includes(c)?C.blueBg:C.surface,cursor:"pointer",userSelect:"none"}}>
+            <input type="checkbox" checked={form.comorbidades.includes(c)} onChange={()=>toggleCom(c)}
+              style={{accentColor:C.blue,width:13,height:13}}/>
+            <span style={{fontSize:11,fontWeight:form.comorbidades.includes(c)?900:300,color:form.comorbidades.includes(c)?C.blue:C.textSec}}>{c}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+};
 
-      const validate = () => {
-        const e={};
-        if (!form.nome.trim())       e.nome="Obrigatório";
-        if (!form.nascimento.trim()) e.nascimento="Obrigatório";
-        if (!form.motivo.trim())     e.motivo="Descreva o motivo";
-        if (!prontuario)             e.nome="Mín. 2 palavras";
-        setErrors(e);
-        return Object.keys(e).length===0;
-      };
+/* ══════════════════════════════════════════════════════
+   ABA AVALIAÇÃO / ADMISSÃO (fundidas)
+══════════════════════════════════════════════════════ */
+const AVAL_INIT={nome:"",nascimento:"",cpf:"",telefone:"",sexo:"Feminino",nomeCuidador:"",telCuidador:"",dataDocumentos:"",equipe:"Equipe 01",origemTipo:"",origemDetalhe:"",motivo:""};
 
-      const handleRegistrar = async ()=>{
-        if (!validate()) return;
-        onRegistrar({...form,id:prontuario,status:"avaliacao",
-          ...Object.fromEntries(DISPS_KEYS.map(k=>[k,false]))});
-        setForm({...BUSCA_FORM_INIT,equipe:equipeDefault||"Equipe 01"});
-        setSaved(true); setTimeout(()=>setSaved(false),3000);
-      };
+const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
+  const [tab,setTab]=useState("lista");
+  const [form,setForm]=useState({...AVAL_INIT,equipe:equipeDefault||"Equipe 01"});
+  const [errs,setErrs]=useState({});
+  const [savedMsg,setSavedMsg]=useState("");
+  const [admAlvo,setAdmAlvo]=useState(null); // paciente em avaliação sendo admitido
+  const [admClinico,setAdmClinico]=useState({...FORM_CLINICO_INIT});
+  const [negMotivo,setNegMotivo]=useState({});
 
-      return (
-        <div style={{padding:24,display:"flex",flexDirection:"column",gap:24,maxWidth:760}}>
-          <div>
-            <h2 style={{fontSize:20,fontWeight:800,color:C.text,margin:0}}>Busca Ativa / Avaliação de Elegibilidade</h2>
-            <p style={{color:C.textSec,margin:"4px 0 0",fontSize:13}}>Registre pacientes em avaliação — admita ou registre negativa com justificativa.</p>
-          </div>
+  const prontuario=gerarProntuario(form.nome,form.nascimento);
+  const emAval=pacientes.filter(p=>p.status==="avaliacao"&&(role==="equipe"?p.equipe===equipeDefault:true));
+  const negativas=pacientes.filter(p=>p.status==="negativa"&&(role==="equipe"?p.equipe===equipeDefault:true));
 
-          <Card style={{padding:20}}>
-            <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 16px"}}>Registrar Novo Avaliado</h3>
-            {prontuario&&(
-              <div style={{marginBottom:16,padding:"10px 14px",borderRadius:C.radiusXs,
-                background:"#FEF3C7",border:"1px solid #FCD34D",fontSize:13,color:"#92400E",fontWeight:700}}>
-                📋 Prontuário provisório: {prontuario}
-              </div>
-            )}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-              <div style={{gridColumn:"1/-1"}}>
-                <Input label="Nome Completo" value={form.nome} onChange={v=>set("nome",v)}
-                  mask="name" required error={errors.nome}/>
-              </div>
-              <Input label="Data de Nascimento" value={form.nascimento} onChange={v=>set("nascimento",v)}
-                mask="date" required error={errors.nascimento} placeholder="DD/MM/AAAA"/>
-              <Input label="CPF" value={form.cpf} onChange={v=>set("cpf",v)} mask="cpf"/>
-              <Input label="Telefone" value={form.telefone} onChange={v=>set("telefone",v)} mask="phone"/>
-              {role==="coordenacao"&&(
-                <Select label="Equipe" value={form.equipe} onChange={v=>set("equipe",v)} options={EQUIPES_LIST}/>
-              )}
-              <div style={{gridColumn:"1/-1"}}>
-                <Input label="Motivo do Encaminhamento" value={form.motivo} onChange={v=>set("motivo",v)}
-                  required error={errors.motivo} placeholder="Ex: Pós-AVC com necessidade de fisioterapia domiciliar"/>
-              </div>
-            </div>
-            <div style={{display:"flex",gap:10,marginTop:14,alignItems:"center"}}>
-              <Btn onClick={handleRegistrar}>🔍 Registrar para Avaliação</Btn>
-              {saved&&<span style={{fontSize:13,color:C.success,fontWeight:600}}>✓ Registrado!</span>}
-            </div>
-          </Card>
+  const setF=(k,v)=>setForm(f=>({...f,[k]:v}));
 
-          <Card style={{padding:20}}>
-            <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 16px"}}>
-              Aguardando Decisão ({emAval.length})
-            </h3>
-            {emAval.length===0&&<p style={{color:C.textMuted,fontSize:13}}>Nenhum paciente em avaliação.</p>}
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {emAval.map(p=>(
-                <div key={p.id} style={{padding:"12px 14px",border:`1px solid ${C.warningBd}`,
-                  borderRadius:C.radiusXs,background:C.warningBg}}>
-                  <div style={{fontSize:13,fontWeight:700,color:C.text}}>{p.nome}</div>
-                  <div style={{fontSize:11,color:C.textSec,margin:"2px 0 10px"}}>
-                    {p.id} · {p.equipe} · {p.motivo}
+  const validate=()=>{
+    const e={};
+    if(!form.nome.trim()) e.nome="Obrigatório";
+    if(!form.nascimento.trim()) e.nascimento="Obrigatório";
+    if(!form.motivo.trim()) e.motivo="Descreva o motivo";
+    if(!prontuario) e.nome="Mín. 2 palavras";
+    setErrs(e);
+    return !Object.keys(e).length;
+  };
+
+  const handleRegistrar=()=>{
+    if(!validate()) return;
+    setPacientes(prev=>[...prev,{
+      ...form,id:prontuario,status:"avaliacao",admissao:"",
+      cid:"",cidCronico:"",cidInternacao:"",perfil:"",ad:"",score:0,
+      SVD:false,O2:false,SNE:false,GTT:false,TQT:false,VM:false,
+      Hipodermoclise:false,ATB:false,CurativoEsp:false,
+      atb1:"",atb2:"",o2Indicacao:"Não",paliativo:"NÃO",comorbidades:[],
+      transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",
+    }]);
+    setForm({...AVAL_INIT,equipe:equipeDefault||"Equipe 01"});
+    setSavedMsg("✓ Paciente registrado para avaliação!"); setTimeout(()=>setSavedMsg(""),3500);
+    setTab("lista");
+  };
+
+  const handleAdmitir=()=>{
+    if(!admClinico.cid||!admClinico.perfil||!admClinico.ad){
+      alert("Preencha CID, Perfil Epidemiológico e Classificação AD."); return;
+    }
+    setPacientes(prev=>prev.map(p=>p.id===admAlvo.id?{
+      ...p,status:"ativo",admissao:hoje(),...admClinico,
+    }:p));
+    setAdmAlvo(null);
+    setSavedMsg("✓ Paciente admitido com sucesso!"); setTimeout(()=>setSavedMsg(""),3500);
+  };
+
+  const handleNegativa=(p)=>{
+    const m=negMotivo[p.id];
+    if(!m){alert("Informe o motivo da negativa."); return;}
+    setPacientes(prev=>prev.map(x=>x.id===p.id?{...x,status:"negativa",motivo:m}:x));
+  };
+
+  return (
+    <div style={{padding:24,display:"flex",flexDirection:"column",gap:18,maxWidth:820}}>
+      <div style={{fontSize:20,fontWeight:900,color:C.text}}>Avaliação / Admissão</div>
+
+      {/* Tabs internas */}
+      <div style={{display:"flex",gap:0,borderBottom:`1px solid ${C.border}`}}>
+        {[["lista","📋 Em Avaliação"],["registrar","➕ Registrar Avaliado"],["negativas","❌ Negativas"]].map(([k,lbl])=>(
+          <button key={k} onClick={()=>setTab(k)}
+            style={{padding:"9px 16px",border:"none",borderBottom:tab===k?`2px solid ${C.primary}`:"2px solid transparent",
+              background:"transparent",cursor:"pointer",fontSize:12,fontWeight:tab===k?900:300,
+              color:tab===k?C.primaryDk:C.textMuted,fontFamily:"inherit"}}>
+            {lbl} {k==="lista"?`(${emAval.length})`:k==="negativas"?`(${negativas.length})`:""}
+          </button>
+        ))}
+      </div>
+
+      {savedMsg&&<div style={{padding:"8px 14px",background:C.primaryLt,borderRadius:C.radiusXs,fontSize:13,fontWeight:900,color:C.primaryDk}}>{savedMsg}</div>}
+
+      {/* Lista em avaliação */}
+      {tab==="lista"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {emAval.length===0&&<div style={{color:C.textMuted,fontSize:13,padding:"20px 0"}}>Nenhum paciente em avaliação.</div>}
+          {emAval.map(p=>{
+            const idade=calcIdade(p.nascimento);
+            return (
+              <Card key={p.id} style={{padding:"14px 16px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
+                  <div>
+                    <div style={{fontSize:14,fontWeight:900,color:C.text}}>{p.nome}</div>
+                    <div style={{fontSize:11,color:C.textMuted,marginTop:2}}>
+                      {idade!=null?`${idade} anos · `:""}📋 {p.id} · {p.equipe}
+                    </div>
+                    <div style={{fontSize:12,color:C.textSec,marginTop:3}}>
+                      Origem: {p.origemTipo||"—"}{p.origemDetalhe?` — ${p.origemDetalhe}`:""} · Docs: {p.dataDocumentos||"—"}
+                    </div>
+                    <div style={{fontSize:12,color:C.textSec,marginTop:1}}>Motivo: {p.motivo||"—"}</div>
                   </div>
-                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                    <Btn variant="success" size="sm" onClick={()=>onAdmitir(p)}>✅ Admitir</Btn>
-                    <div style={{display:"flex",gap:6,alignItems:"center",flex:1,minWidth:200}}>
-                      <input value={motivoNeg[p.id]||""} placeholder="Motivo da negativa..."
-                        onChange={e=>setMotivoNeg(prev=>({...prev,[p.id]:e.target.value}))}
-                        style={{flex:1,padding:"5px 10px",borderRadius:C.radiusXs,border:`1px solid ${C.border}`,fontSize:12}}/>
-                      <Btn variant="secondary" size="sm" onClick={()=>{
-                        if (!motivoNeg[p.id]) return;
-                        onNegativa(p,motivoNeg[p.id]);
-                      }}>❌ Não Elegível</Btn>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                    <Btn variant="success" size="sm" onClick={()=>{setAdmAlvo(p);setAdmClinico({...FORM_CLINICO_INIT});}}>✅ Admitir</Btn>
+                    <div style={{display:"flex",gap:5,alignItems:"center"}}>
+                      <input value={negMotivo[p.id]||""} placeholder="Motivo da negativa..."
+                        onChange={e=>setNegMotivo(prev=>({...prev,[p.id]:e.target.value}))}
+                        style={{padding:"5px 9px",borderRadius:C.radiusXs,border:`1px solid ${C.border}`,fontSize:12,fontFamily:"inherit",width:180}}/>
+                      <Btn variant="secondary" size="sm" onClick={()=>handleNegativa(p)}>❌ Não Elegível</Btn>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card style={{padding:20}}>
-            <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 16px"}}>
-              Histórico de Negativas ({negativas.length})
-            </h3>
-            {negativas.length===0&&<p style={{color:C.textMuted,fontSize:13}}>Nenhuma negativa registrada.</p>}
-            <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              {negativas.map(p=>(
-                <div key={p.id} style={{padding:"10px 14px",border:`1px solid ${C.neutralBd}`,
-                  borderRadius:C.radiusXs,background:C.neutralBg,fontSize:12}}>
-                  <div style={{fontWeight:700,color:C.text}}>{p.nome} <Badge status="negativa"/></div>
-                  <div style={{color:C.textSec,marginTop:2}}>{p.motivo}</div>
-                </div>
-              ))}
-            </div>
-          </Card>
+              </Card>
+            );
+          })}
         </div>
-      );
-    };
+      )}
 
-    // ── Censo Diário ──────────────────────────────────────────────────
-    const CensoDiario = ({pacientes,equipe,role,equipesList}) => {
-      const [equipeSel,setEquipeSel]= useState(equipe||"Equipe 01");
-      const [motoristas,setMotoristas]= useState("");
-      const [intercorrencias,setIntercorrencias]= useState("");
-      const [visitasMed,setVisitasMed]= useState("");
-      const [visitasEnf,setVisitasEnf]= useState("");
-      const [saved,setSaved]= useState(false);
-
-      const ativos = pacientes.filter(p=>p.status==="ativo"&&p.equipe===equipeSel);
-      const resDisps = DISPS_KEYS.reduce((acc,k)=>({...acc,[k]:ativos.filter(p=>p[k]).length}),{});
-
-      const handleSalvar = ()=>{
-        setSaved(true); setTimeout(()=>setSaved(false),3000);
-      };
-
-      return (
-        <div style={{padding:24,display:"flex",flexDirection:"column",gap:20,maxWidth:760}}>
-          <div>
-            <h2 style={{fontSize:20,fontWeight:800,color:C.text,margin:0}}>Censo Diário</h2>
-            <p style={{color:C.textSec,margin:"4px 0 0",fontSize:13}}>{new Date().toLocaleDateString("pt-BR",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</p>
-          </div>
-
-          {role==="coordenacao"&&(
-            <Select label="Equipe" value={equipeSel} onChange={setEquipeSel} options={equipesList}/>
+      {/* Registrar novo avaliado */}
+      {tab==="registrar"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:16}}>
+          {prontuario&&(
+            <div style={{padding:"10px 14px",background:C.yellowBg,borderRadius:C.radiusXs,border:`1px solid ${C.yellow}`,fontSize:13,color:C.brown,fontWeight:900}}>
+              📋 Prontuário provisório: {prontuario}
+            </div>
           )}
-
-          <Card style={{padding:20}}>
-            <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 16px"}}>
-              Resumo Automático — {equipeSel}
-            </h3>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-              <div style={{padding:"12px",background:C.primaryLt,borderRadius:C.radiusXs}}>
-                <div style={{fontSize:11,color:C.primary,fontWeight:600}}>Pacientes Ativos</div>
-                <div style={{fontSize:24,fontWeight:800,color:C.primary}}>{ativos.length}</div>
-              </div>
-              <div style={{padding:"12px",background:C.successBg,borderRadius:C.radiusXs}}>
-                <div style={{fontSize:11,color:C.success,fontWeight:600}}>Total Dispositivos</div>
-                <div style={{fontSize:24,fontWeight:800,color:C.success}}>
-                  {Object.values(resDisps).reduce((s,v)=>s+v,0)}
-                </div>
-              </div>
+          <Divider label="Identificação"/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+            <div style={{gridColumn:"1/-1"}}>
+              <Input label="Nome Completo" value={form.nome} onChange={v=>setF("nome",v)} mask="name" required error={errs.nome} placeholder="Nome completo do paciente"/>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {DISPS_KEYS.map(k=>(
-                <div key={k} style={{display:"flex",justifyContent:"space-between",
-                  padding:"6px 10px",background:resDisps[k]>0?C.primaryLt:C.neutralBg,
-                  borderRadius:C.radiusXs,border:`1px solid ${resDisps[k]>0?C.primary+"30":C.border}`}}>
-                  <span style={{fontSize:12,color:resDisps[k]>0?C.primary:C.textMuted}}>
-                    {DISPS_ICONS[k]} {DISPS_LABELS[k]}
-                  </span>
-                  <span style={{fontSize:12,fontWeight:700,color:resDisps[k]>0?C.primary:C.textMuted}}>
-                    {resDisps[k]}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card style={{padding:20}}>
-            <h3 style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 16px"}}>Entradas do Dia</h3>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-              <Input label="Motoristas em Plantão" value={motoristas} onChange={setMotoristas}
-                placeholder="Ex: 3" type="number"/>
-              <Input label="Intercorrências" value={intercorrencias} onChange={setIntercorrencias}
-                placeholder="Ex: 1"/>
-              <Input label="Visitas Médicas" value={visitasMed} onChange={setVisitasMed}
-                placeholder="Ex: 8" type="number"/>
-              <Input label="Visitas Enf./Aux." value={visitasEnf} onChange={setVisitasEnf}
-                placeholder="Ex: 15" type="number"/>
-            </div>
-            <div style={{marginTop:16,display:"flex",gap:10,alignItems:"center"}}>
-              <Btn onClick={handleSalvar} size="lg">💾 Salvar Censo</Btn>
-              {saved&&<span style={{fontSize:13,color:C.success,fontWeight:600}}>✓ Censo salvo!</span>}
-            </div>
-          </Card>
-        </div>
-      );
-    };
-
-    // ── Painel de 22 Equipes (Coordenação) ───────────────────────────
-    const CoordEquipes = ({pacientes,onSelectEquipe}) => {
-      const mediaATB = EQUIPE_STATS.reduce((s,e)=>s+e.ATB,0)/22;
-      return (
-        <div style={{padding:24}}>
-          <h2 style={{fontSize:20,fontWeight:800,color:C.text,margin:"0 0 4px"}}>22 Equipes — Detalhado</h2>
-          <p style={{color:C.textSec,fontSize:13,margin:"0 0 20px"}}>Clique em uma equipe para detalhar pacientes</p>
-          <div style={{overflowX:"auto"}}>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-              <thead>
-                <tr style={{background:C.surfaceAlt}}>
-                  {["Equipe","Ativos","Em Aval.","SVD","O₂","SNE","GTT","ATB","Curativo","Motoristas","Status"].map(h=>(
-                    <th key={h} style={{padding:"10px 12px",textAlign:"left",fontWeight:700,
-                      color:C.textSec,borderBottom:`2px solid ${C.border}`,whiteSpace:"nowrap"}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {EQUIPE_STATS.map((e,i)=>{
-                  const ratio = mediaATB>0?e.ATB/mediaATB:1;
-                  const alert = ratio>=1.3;
-                  return (
-                    <tr key={e.nome} onClick={()=>onSelectEquipe(e.nome)}
-                      style={{borderBottom:`1px solid ${C.border}`,cursor:"pointer",
-                        background:i%2===0?C.surface:C.surfaceAlt,
-                        transition:"background 0.1s"}}>
-                      <td style={{padding:"10px 12px",fontWeight:700,color:C.primary}}>{e.nome}</td>
-                      <td style={{padding:"10px 12px",fontWeight:600}}>{e.ativos}</td>
-                      <td style={{padding:"10px 12px",color:e.avaliados>0?C.warning:C.textMuted}}>{e.avaliados}</td>
-                      <td style={{padding:"10px 12px"}}>{e.SVD}</td>
-                      <td style={{padding:"10px 12px"}}>{e.O2}</td>
-                      <td style={{padding:"10px 12px"}}>—</td>
-                      <td style={{padding:"10px 12px"}}>—</td>
-                      <td style={{padding:"10px 12px",fontWeight:alert?700:400,
-                        color:alert?C.danger:C.text}}>{e.ATB}</td>
-                      <td style={{padding:"10px 12px"}}>{e.CurativoEsp}</td>
-                      <td style={{padding:"10px 12px"}}>{e.motoristas}</td>
-                      <td style={{padding:"10px 12px"}}>
-                        {alert
-                          ?<span style={{fontSize:10,padding:"2px 8px",borderRadius:12,background:C.dangerBg,color:C.danger,fontWeight:700}}>⚠ ALERTA ATB</span>
-                          :<span style={{fontSize:10,padding:"2px 8px",borderRadius:12,background:C.successBg,color:C.success,fontWeight:700}}>✓ Normal</span>
-                        }
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <Input label="Data de Nascimento" value={form.nascimento} onChange={v=>setF("nascimento",v)} mask="date" required error={errs.nascimento} placeholder="DD/MM/AAAA"/>
+            <Select label="Sexo" value={form.sexo} onChange={v=>setF("sexo",v)} options={SEXO_OPTIONS}/>
+            <Input label="CPF" value={form.cpf} onChange={v=>setF("cpf",v)} mask="cpf" placeholder="000.000.000-00"/>
+            <Input label="Telefone do Paciente" value={form.telefone} onChange={v=>setF("telefone",v)} mask="phone"/>
+            <Input label="Nome do Cuidador" value={form.nomeCuidador} onChange={v=>setF("nomeCuidador",v)} placeholder="Nome completo"/>
+            <Input label="Telefone do Cuidador" value={form.telCuidador} onChange={v=>setF("telCuidador",v)} mask="phone"/>
+            <Input label="Data de Recebimento da Documentação" value={form.dataDocumentos} onChange={v=>setF("dataDocumentos",v)} mask="date" placeholder="DD/MM/AAAA"/>
+            {role==="coordenacao"&&(
+              <Select label="Equipe" value={form.equipe} onChange={v=>setF("equipe",v)} options={EQUIPES_LIST}/>
+            )}
+          </div>
+          <Divider label="Origem"/>
+          <OrigemSelector origemTipo={form.origemTipo} origemDetalhe={form.origemDetalhe}
+            onChange={(t,d)=>setForm(f=>({...f,origemTipo:t,origemDetalhe:d}))}/>
+          <Divider label="Motivo do Encaminhamento"/>
+          <Input label="Descrição do Motivo" value={form.motivo} onChange={v=>setF("motivo",v)}
+            required error={errs.motivo} placeholder="Ex: Pós-AVC com necessidade de fisioterapia domiciliar"/>
+          <div style={{display:"flex",gap:10,alignItems:"center",marginTop:4}}>
+            <Btn onClick={handleRegistrar} size="lg">🔍 Registrar para Avaliação</Btn>
+            <Btn variant="secondary" onClick={()=>{setForm({...AVAL_INIT,equipe:equipeDefault||"Equipe 01"});setErrs({});}}>Limpar</Btn>
           </div>
         </div>
-      );
-    };
+      )}
 
-    // ── App principal ─────────────────────────────────────────────────
-    function App() {
-      const [user,setUser]           = useState(null);
-      const [role,setRole]           = useState(null);
-      const [page,setPage]           = useState(null);
-      const [pacientes,setPacientes] = useState(PACIENTES_MOCK);
-
-      const equipe = useMemo(()=>{
-        if (!user) return null;
-        const local = user.split("@")[0];
-        const match = EQUIPES_LIST.find(e=>e.toLowerCase().replace(/\s/g,"")===local);
-        return match || "Equipe 01";
-      },[user]);
-
-      const handleLogin = (email,r) => {
-        setUser(email); setRole(r);
-        setPage(r==="coordenacao"?"coord_dash":"dashboard");
-      };
-      const handleLogout = () => { setUser(null); setRole(null); setPage(null); };
-
-      const handleAdmitir = useCallback((p)=>{
-        setPacientes(prev=>prev.map(x=>x.id===p.id?{...x,status:"ativo",
-          admissao:new Date().toLocaleDateString("pt-BR")}:x));
-      },[]);
-
-      const handleNegativa = useCallback((p,motivo)=>{
-        setPacientes(prev=>prev.map(x=>x.id===p.id?{...x,status:"negativa",motivo}:x));
-      },[]);
-
-      const handleRegistrar = useCallback((dados)=>{
-        setPacientes(prev=>[...prev,{...dados,perfil:"",complexidade:0,cid:"",admissao:"",
-          ...Object.fromEntries(DISPS_KEYS.map(k=>[k,false]))}]);
-      },[]);
-
-      const handleNovoPaciente = useCallback((dados)=>{
-        setPacientes(prev=>[...prev,{...dados,complexidade:parseInt(dados.complexidade)||1}]);
-      },[]);
-
-      if (!user) return <LoginView onLogin={handleLogin}/>;
-
-      const renderPage = () => {
-        switch(page){
-          case "dashboard":    return <DashboardEquipe pacientes={pacientes} equipe={equipe}/>;
-          case "coord_dash":   return <DashboardCoordenacao pacientes={pacientes}
-                                 onSelectEquipe={e=>setPage("pacientes")}/>;
-          case "coord_equipes":return <CoordEquipes pacientes={pacientes}
-                                 onSelectEquipe={e=>setPage("pacientes")}/>;
-          case "pacientes":    return <PacientesList pacientes={pacientes} equipe={equipe}
-                                 role={role} onAdmitir={handleAdmitir} onNegativa={handleNegativa}/>;
-          case "admissao":     return <AdmissaoForm equipeDefault={equipe} role={role}
-                                 onSave={handleNovoPaciente}/>;
-          case "busca_ativa":  return <BuscaAtiva equipeDefault={equipe} pacientes={pacientes}
-                                 role={role} onRegistrar={handleRegistrar}
-                                 onAdmitir={handleAdmitir} onNegativa={handleNegativa}/>;
-          case "censo":        return <CensoDiario pacientes={pacientes} equipe={equipe}
-                                 role={role} equipesList={EQUIPES_LIST}/>;
-          default:             return <div style={{padding:32,color:C.textMuted}}>Selecione uma opção no menu.</div>;
-        }
-      };
-
-      return (
-        <div style={{display:"flex",minHeight:"100vh",background:C.bg,fontFamily:"'Segoe UI',system-ui,sans-serif"}}>
-          <Sidebar role={role} page={page} setPage={setPage} user={user} onLogout={handleLogout}/>
-          <main style={{flex:1,overflowY:"auto",maxHeight:"100vh"}}>
-            {renderPage()}
-          </main>
+      {/* Histórico negativas */}
+      {tab==="negativas"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {negativas.length===0&&<div style={{color:C.textMuted,fontSize:13,padding:"20px 0"}}>Nenhuma negativa registrada.</div>}
+          {negativas.map(p=>(
+            <div key={p.id} style={{padding:"10px 14px",borderRadius:C.radiusXs,background:C.neutralBg,border:`1px solid ${C.neutralBd}`,fontSize:12}}>
+              <div style={{fontWeight:900,color:C.text}}>{p.nome} <Badge status="negativa"/></div>
+              <div style={{color:C.textSec,marginTop:3}}>{p.motivo||"—"}</div>
+              <div style={{color:C.textMuted,fontSize:11,marginTop:2}}>Equipe: {p.equipe} · {p.nascimento}</div>
+            </div>
+          ))}
         </div>
-      );
-    }
+      )}
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
-  </script>
+      {/* Modal admissão clínica */}
+      {admAlvo&&(
+        <Modal title={`Admitir — ${admAlvo.nome}`} onClose={()=>setAdmAlvo(null)} width={750}>
+          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+            <div style={{padding:"8px 13px",background:C.primaryLt,borderRadius:C.radiusXs,fontSize:12}}>
+              <strong>Data de Admissão:</strong> {hoje()} (gerada automaticamente)
+            </div>
+            <FormClinico form={admClinico} onChange={setAdmClinico}/>
+            <div style={{display:"flex",gap:10,marginTop:8}}>
+              <Btn onClick={handleAdmitir} size="lg" variant="success">✅ Confirmar Admissão</Btn>
+              <Btn onClick={()=>setAdmAlvo(null)} variant="secondary">Cancelar</Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════════
+   COORDENAÇÃO — Painel e 22 Equipes
+══════════════════════════════════════════════════════ */
+const DashboardCoordenacao=({pacientes,onSelectEquipe})=>{
+  const totalATB=EQUIPE_STATS.reduce((s,e)=>s+e.ATB,0);
+  const mediaATB=totalATB/22;
+  return (
+    <div style={{padding:24,display:"flex",flexDirection:"column",gap:20}}>
+      <div><div style={{fontSize:20,fontWeight:900,color:C.text}}>Painel Geral — Coordenação</div>
+      <div style={{fontSize:12,color:C.textMuted,marginTop:2}}>22 equipes · {new Date().toLocaleDateString("pt-BR")}</div></div>
+      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+        <KPI label="Pacientes Ativos" value={EQUIPE_STATS.reduce((s,e)=>s+e.ativos,0)} icon="👥" color={C.primary}/>
+        <KPI label="Em Avaliação" value={EQUIPE_STATS.reduce((s,e)=>s+e.avaliados,0)} icon="🔍" color={C.orange}/>
+        <KPI label="ATB Parenteral" value={totalATB} icon="🧬" color={C.danger}/>
+        <KPI label="Motoristas" value={EQUIPE_STATS.reduce((s,e)=>s+e.motoristas,0)} icon="🚑" color={C.blue}/>
+      </div>
+      <Card style={{padding:18}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{fontSize:13,fontWeight:900,color:C.text}}>Mapa de Carga ATB — 22 Equipes</div>
+          <div style={{display:"flex",gap:8,fontSize:10,color:C.textMuted,fontWeight:900}}>
+            <span style={{color:C.success}}>● Normal</span>
+            <span style={{color:C.orange}}>● Atenção</span>
+            <span style={{color:C.danger}}>● Sobrecarga</span>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:7}}>
+          {EQUIPE_STATS.map(e=>{
+            const r=mediaATB>0?e.ATB/mediaATB:1;
+            const crit=r>=1.7, alert=r>=1.3;
+            const bg=crit?C.dangerBg:alert?C.orangeBg:C.successBg;
+            const bd=crit?C.dangerBd:alert?C.orangeBd:C.successBd;
+            const tc=crit?C.danger:alert?C.orange:C.success;
+            return (
+              <button key={e.nome} onClick={()=>onSelectEquipe(e.nome)}
+                style={{padding:"9px 11px",borderRadius:C.radiusXs,background:bg,border:`1.5px solid ${bd}`,cursor:"pointer",textAlign:"left"}}>
+                <div style={{fontSize:11,fontWeight:900,color:tc,marginBottom:3}}>{e.nome}</div>
+                <div style={{fontSize:11,color:C.textSec,display:"flex",flexDirection:"column",gap:1}}>
+                  <span>👥 {e.ativos} ativos</span>
+                  <span>🧬 {e.ATB} ATB</span>
+                  <span>🩹 {e.CurativoEsp} cur.</span>
+                  <span>🚑 {e.motoristas} mot.</span>
+                </div>
+                {crit&&<div style={{fontSize:9,fontWeight:900,color:C.danger,marginTop:4}}>⚠ SOBRECARGA ATB</div>}
+                {alert&&!crit&&<div style={{fontSize:9,fontWeight:900,color:C.orange,marginTop:4}}>⚡ ATENÇÃO</div>}
+              </button>
+            );
+          })}
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+const CoordEquipes=({onSelectEquipe})=>{
+  const mediaATB=EQUIPE_STATS.reduce((s,e)=>s+e.ATB,0)/22;
+  return (
+    <div style={{padding:24}}>
+      <div style={{fontSize:20,fontWeight:900,color:C.text,marginBottom:4}}>22 Equipes — Detalhado</div>
+      <div style={{fontSize:12,color:C.textMuted,marginBottom:16}}>Clique para ver pacientes da equipe</div>
+      <div style={{overflowX:"auto"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+          <thead>
+            <tr style={{background:C.surfaceAlt}}>
+              {["Equipe","Ativos","Em Aval.","SVD","O₂","ATB","Curativo","Motoristas","Status"].map(h=>(
+                <th key={h} style={{padding:"9px 11px",textAlign:"left",fontWeight:900,color:C.textMuted,borderBottom:`2px solid ${C.border}`,whiteSpace:"nowrap",letterSpacing:"0.03em",fontSize:10,textTransform:"uppercase"}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {EQUIPE_STATS.map((e,i)=>{
+              const r=mediaATB>0?e.ATB/mediaATB:1, alert=r>=1.3;
+              return (
+                <tr key={e.nome} onClick={()=>onSelectEquipe(e.nome)}
+                  style={{borderBottom:`1px solid ${C.border}`,cursor:"pointer",background:i%2?C.surfaceAlt:C.surface}}>
+                  <td style={{padding:"9px 11px",fontWeight:900,color:C.primary}}>{e.nome}</td>
+                  <td style={{padding:"9px 11px",fontWeight:900}}>{e.ativos}</td>
+                  <td style={{padding:"9px 11px",color:e.avaliados>0?C.orange:C.textMuted}}>{e.avaliados}</td>
+                  <td style={{padding:"9px 11px"}}>{e.SVD}</td>
+                  <td style={{padding:"9px 11px"}}>{e.O2}</td>
+                  <td style={{padding:"9px 11px",fontWeight:alert?900:300,color:alert?C.danger:C.text}}>{e.ATB}</td>
+                  <td style={{padding:"9px 11px"}}>{e.CurativoEsp}</td>
+                  <td style={{padding:"9px 11px"}}>{e.motoristas}</td>
+                  <td style={{padding:"9px 11px"}}>
+                    {alert
+                      ?<span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:C.dangerBg,color:C.danger,fontWeight:900}}>⚠ ALERTA ATB</span>
+                      :<span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:C.successBg,color:C.success,fontWeight:900}}>✓ Normal</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════════
+   APP PRINCIPAL
+══════════════════════════════════════════════════════ */
+function App(){
+  const [user,setUser]=useState(null);
+  const [role,setRole]=useState(null);
+  const [page,setPage]=useState(null);
+  const [pacientes,setPacientes]=useState(PACIENTES_MOCK);
+
+  const equipe=useMemo(()=>{
+    if(!user) return null;
+    const local=user.split("@")[0];
+    return EQUIPES_LIST.find(e=>e.toLowerCase().replace(/\s/g,"")===local)||"Equipe 01";
+  },[user]);
+
+  const handleLogin=(email,r)=>{setUser(email);setRole(r);setPage(r==="coordenacao"?"coord_dash":"dashboard");};
+  const handleLogout=()=>{setUser(null);setRole(null);setPage(null);};
+
+  if(!user) return <LoginView onLogin={handleLogin}/>;
+
+  const render=()=>{
+    switch(page){
+      case "dashboard":    return <Dashboard pacientes={pacientes} equipe={equipe} role={role} setPacientes={setPacientes}/>;
+      case "coord_dash":   return <DashboardCoordenacao pacientes={pacientes} onSelectEquipe={()=>setPage("pacientes")}/>;
+      case "coord_equipes":return <CoordEquipes onSelectEquipe={()=>setPage("pacientes")}/>;
+      case "pacientes":    return <PacientesList pacientes={pacientes} equipe={equipe} role={role} setPacientes={setPacientes} userEmail={user}/>;
+      case "avaliacao":    return <AvaliacaoAdmissao pacientes={pacientes} setPacientes={setPacientes} equipeDefault={equipe} role={role} user={user}/>;
+      default:             return <div style={{padding:32,color:C.textMuted,fontSize:14}}>Selecione uma opção no menu.</div>;
+    }
+  };
+
+  return (
+    <div style={{display:"flex",minHeight:"100vh",background:C.bg,fontFamily:"'Alexandria','Segoe UI',system-ui,sans-serif",fontWeight:300}}>
+      <Sidebar role={role} page={page} setPage={setPage} user={user} onLogout={handleLogout}/>
+      <main style={{flex:1,overflowY:"auto",maxHeight:"100vh"}}>{render()}</main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
 </body>
 </html>
