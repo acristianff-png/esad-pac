@@ -331,7 +331,7 @@ const Badge=({status})=>{
 const AdBadge=({val})=>{
   if(!val) return null;
   const s=AD_COLORS[val]||AD_COLORS.AD1;
-  return <span style={{display:"inline-flex",alignItems:"center",padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:900,color:s.c,background:s.bg,border:`1px solid ${s.bd}`}}>{val}</span>;
+  return <span style={{display:"inline-flex",alignItems:"center",padding:"3px 9px",borderRadius:999,fontSize:11,fontWeight:700,color:s.c,background:s.bg,border:`1px solid ${s.bd}`}}>{val}</span>;
 };
 
 const Btn=({children,onClick,variant="primary",size="md",disabled=false,style={}})=>{
@@ -402,7 +402,7 @@ const Toggle=({label,icon,checked,onChange})=>(
 const Divider=({label})=>(
   <div style={{display:"flex",alignItems:"center",gap:10,margin:"4px 0"}}>
     <div style={{flex:1,height:1,background:C.border}}/>
-    {label&&<span style={{fontSize:10,fontWeight:900,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>{label}</span>}
+    {label&&<span style={{fontSize:10,fontWeight:600,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.08em",whiteSpace:"nowrap"}}>{label}</span>}
     <div style={{flex:1,height:1,background:C.border}}/>
   </div>
 );
@@ -415,7 +415,7 @@ const KPI=({label,value,sub,color,icon,delta})=>(
         <div style={{fontSize:26,fontWeight:800,color:color||C.text,lineHeight:1}}>{value}</div>
         {sub&&<div style={{fontSize:11,color:C.textMuted,marginTop:3}}>{sub}</div>}
         {delta!==undefined&&(
-          <div style={{fontSize:11,fontWeight:900,color:delta>=0?C.success:C.danger,marginTop:2}}>
+          <div style={{fontSize:11,fontWeight:600,color:delta>=0?C.success:C.danger,marginTop:2}}>
             {delta>=0?"▲":"▼"} {Math.abs(delta)} vs mês ant.
           </div>
         )}
@@ -429,11 +429,11 @@ const KPI=({label,value,sub,color,icon,delta})=>(
 const Modal=({title,onClose,children,width=560})=>(
   <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
     <div style={{background:C.surface,borderRadius:C.radius,width:"100%",maxWidth:width,maxHeight:"90vh",overflowY:"auto",boxShadow:C.shadowMd}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 22px",borderBottom:`1px solid ${C.border}`,position:"sticky",top:0,background:C.surface,zIndex:1}}>
-        <div style={{fontSize:16,fontWeight:900,color:C.text}}>{title}</div>
-        <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,color:C.textMuted}}>×</button>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"18px 24px",borderBottom:`1px solid ${C.border}`,position:"sticky",top:0,background:C.surface,zIndex:1}}>
+        <div style={{fontSize:16,fontWeight:700,color:C.text}}>{title}</div>
+        <button onClick={onClose} style={{background:C.neutralBg,border:"none",cursor:"pointer",fontSize:16,color:C.textMuted,width:30,height:30,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
       </div>
-      <div style={{padding:22}}>{children}</div>
+      <div style={{padding:24}}>{children}</div>
     </div>
   </div>
 );
@@ -500,7 +500,7 @@ const AltaModal=({paciente,onClose,onConfirm})=>{
           <Input label="Descrição" value={eletivaDesc} onChange={setEletivaDesc} placeholder="Descreva a indicação"/>
         )}
 
-        {err&&<div style={{padding:"8px 12px",background:C.dangerBg,borderRadius:C.radiusXs,fontSize:12,color:C.danger,fontWeight:900}}>{err}</div>}
+        {err&&<div style={{padding:"10px 13px",background:C.dangerBg,borderRadius:C.radiusXs,fontSize:12,color:C.danger,fontWeight:600,border:`1px solid ${C.dangerBd}`}}>{err}</div>}
 
         <div style={{display:"flex",gap:10,marginTop:4}}>
           <Btn onClick={handleConfirm} variant={destino.startsWith("Óbito")?"danger":"success"} size="lg">
@@ -525,20 +525,20 @@ const TransferenciaModal=({paciente,userEquipe,onClose,onEnviar})=>{
   return (
     <Modal title="Transferir Paciente" onClose={onClose} width={480}>
       <div style={{display:"flex",flexDirection:"column",gap:14}}>
-        <div style={{padding:"10px 14px",background:C.primaryLt,borderRadius:C.radiusXs,fontSize:13}}>
-          <strong>{paciente.nome}</strong><br/>
+        <div style={{padding:"12px 15px",background:C.primaryLt,borderRadius:C.radiusXs,fontSize:13,border:`1px solid ${C.primary}22`}}>
+          <strong style={{fontWeight:700}}>{paciente.nome}</strong><br/>
           <span style={{fontSize:11,color:C.textMuted}}>Prontuário: {paciente.id} · Equipe atual: {paciente.equipe}</span>
         </div>
         <Select label="Equipe de Destino" value={destino} onChange={setDestino}
           options={outrasEquipes.map(e=>({value:e,label:`EMAD ${e}`}))} placeholder="Selecione a EMAD de destino" required/>
         <Input label="Observações da Transferência" value={note} onChange={setNote}
           placeholder="Motivo ou informações relevantes"/>
-        <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13}}>
+        <label style={{display:"flex",alignItems:"flex-start",gap:10,cursor:"pointer",fontSize:13,color:C.textSec}}>
           <input type="checkbox" checked={confirmou} onChange={e=>setConfirmou(e.target.checked)}
-            style={{accentColor:C.primary,width:15,height:15}}/>
+            style={{accentColor:C.primary,width:16,height:16,marginTop:1,flexShrink:0}}/>
           <span>Confirmo que estou autorizando esta transferência como responsável da {userEquipe}.</span>
         </label>
-        {!confirmou&&<div style={{fontSize:11,color:C.textMuted}}>⚠ Marque a caixa de confirmação para continuar.</div>}
+        {!confirmou&&<div style={{fontSize:11,color:C.warning,fontWeight:500}}>⚠ Marque a caixa de confirmação para continuar.</div>}
         <div style={{display:"flex",gap:10}}>
           <Btn onClick={()=>{if(destino&&confirmou) onEnviar(paciente.id,destino,note);}}
             variant="orange" disabled={!destino||!confirmou}>📤 Enviar Transferência</Btn>
@@ -678,8 +678,8 @@ const Dashboard=({pacientes,equipe,role,setPacientes})=>{
   return (
     <div style={{padding:24,display:"flex",flexDirection:"column",gap:22}}>
       <div>
-        <div style={{fontSize:20,fontWeight:900,color:C.text}}>{role==="equipe"?equipe:"Painel Geral"}</div>
-        <div style={{fontSize:12,color:C.textMuted,marginTop:2}}>{new Date().toLocaleDateString("pt-BR",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
+        <div style={{fontSize:22,fontWeight:800,color:C.text}}>{role==="equipe"?equipe:"Painel Geral"}</div>
+        <div style={{fontSize:12,color:C.textMuted,marginTop:3}}>{new Date().toLocaleDateString("pt-BR",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
       </div>
 
       {/* KPIs */}
@@ -692,7 +692,7 @@ const Dashboard=({pacientes,equipe,role,setPacientes})=>{
 
       {/* Comparativo mensal */}
       <Card style={{padding:18}}>
-        <div style={{fontSize:13,fontWeight:900,color:C.text,marginBottom:14}}>Comparativo — Mês Atual × Anterior</div>
+        <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:14}}>Comparativo — Mês Atual × Anterior</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:8}}>
           {[
             {label:"Admitidos",atu:STATS_ATU.admitidos,ant:STATS_ANT.admitidos},
@@ -707,9 +707,9 @@ const Dashboard=({pacientes,equipe,role,setPacientes})=>{
             const isGood=(label==="Óbitos"||label==="Intercorrências"||label==="Não Elegíveis")?d<=0:d>=0;
             return (
               <div key={label} style={{padding:"10px 12px",borderRadius:C.radiusXs,background:C.surfaceAlt,border:`1px solid ${C.border}`}}>
-                <div style={{fontSize:10,fontWeight:900,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.06em"}}>{label}</div>
-                <div style={{fontSize:22,fontWeight:900,color:C.text,marginTop:2}}>{atu}</div>
-                <div style={{fontSize:10,fontWeight:900,color:d===0?C.neutral:isGood?C.success:C.danger}}>
+                <div style={{fontSize:10,fontWeight:600,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.06em"}}>{label}</div>
+                <div style={{fontSize:22,fontWeight:800,color:C.text,marginTop:2}}>{atu}</div>
+                <div style={{fontSize:10,fontWeight:600,color:d===0?C.neutral:isGood?C.success:C.danger}}>
                   {d===0?"=":(d>0?"▲":"▼")} {Math.abs(d)} vs {ant}
                 </div>
               </div>
@@ -720,7 +720,7 @@ const Dashboard=({pacientes,equipe,role,setPacientes})=>{
 
       {/* Dispositivos e Procedimentos Ativos */}
       <Card style={{padding:18}}>
-        <div style={{fontSize:13,fontWeight:900,color:C.text,marginBottom:14}}>Dispositivos e Procedimentos Ativos</div>
+        <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:14}}>Dispositivos e Procedimentos Ativos</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           {DISPS_KEYS.map(k=>{
             const count=ativos.filter(p=>p[k]).length;
@@ -729,7 +729,7 @@ const Dashboard=({pacientes,equipe,role,setPacientes})=>{
               <div key={k}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
                   <span style={{fontSize:12,color:C.textSec}}>{DISPS_ICONS[k]} {DISPS_LABELS[k]}</span>
-                  <span style={{fontSize:12,fontWeight:900,color:count>0?C.primary:C.textMuted}}>{count}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:count>0?C.primary:C.textMuted}}>{count}</span>
                 </div>
                 <div style={{height:4,borderRadius:2,background:C.neutralBg}}>
                   <div style={{height:"100%",width:`${pct}%`,background:C.primary,borderRadius:2,transition:"width 0.4s"}}/>
@@ -742,7 +742,7 @@ const Dashboard=({pacientes,equipe,role,setPacientes})=>{
 
       {/* Pacientes ativos — Nome, Idade, Permanência */}
       <Card style={{padding:18}}>
-        <div style={{fontSize:13,fontWeight:900,color:C.text,marginBottom:14}}>Pacientes Ativos</div>
+        <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:14}}>Pacientes Ativos</div>
         {ativos.length===0&&<div style={{color:C.textMuted,fontSize:13}}>Nenhum paciente ativo.</div>}
         <div style={{display:"flex",flexDirection:"column",gap:6}}>
           {ativos.map(p=>{
@@ -755,19 +755,19 @@ const Dashboard=({pacientes,equipe,role,setPacientes})=>{
               <div key={p.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 13px",
                 borderRadius:C.radiusXs,border:`1px solid ${C.border}`,background:C.surfaceAlt}}>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:13,fontWeight:900,color:C.text}}>{p.nome}</div>
+                  <div style={{fontSize:13,fontWeight:600,color:C.text}}>{p.nome}</div>
                   <div style={{fontSize:11,color:C.textMuted,marginTop:1}}>
                     {idade!=null?`${idade} anos · `:""}Prontuário: {p.id}
                   </div>
                 </div>
                 <div style={{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"flex-end",maxWidth:180}}>
                   {disps.slice(0,3).map(k=>(
-                    <span key={k} style={{fontSize:10,padding:"2px 6px",borderRadius:10,background:C.primaryLt,color:C.primaryDk,fontWeight:900}}>{k}</span>
+                    <span key={k} style={{fontSize:10,padding:"2px 7px",borderRadius:999,background:C.primaryLt,color:C.primaryDk,fontWeight:600}}>{k}</span>
                   ))}
                   {disps.length>3&&<span style={{fontSize:10,color:C.textMuted}}>+{disps.length-3}</span>}
                 </div>
                 {dias!=null&&(
-                  <div style={{padding:"4px 10px",borderRadius:10,fontWeight:900,fontSize:12,whiteSpace:"nowrap",
+                  <div style={{padding:"4px 11px",borderRadius:999,fontWeight:700,fontSize:12,whiteSpace:"nowrap",
                     background:alertDias?C.dangerBg:warnDias?C.orangeBg:C.primaryLt,
                     color:alertDias?C.danger:warnDias?C.orange:C.primaryDk}}>
                     {dias}d
@@ -782,11 +782,11 @@ const Dashboard=({pacientes,equipe,role,setPacientes})=>{
       {/* Transferências recebidas pendentes */}
       {transfsRecebidas.length>0&&(
         <Card style={{padding:18,border:`2px solid ${C.orangeBd}`}}>
-          <div style={{fontSize:13,fontWeight:900,color:C.orange,marginBottom:12}}>📤 Transferências Recebidas ({transfsRecebidas.length})</div>
+          <div style={{fontSize:14,fontWeight:700,color:C.orange,marginBottom:12}}>📤 Transferências Recebidas ({transfsRecebidas.length})</div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {transfsRecebidas.map(p=>(
               <div key={p.id} style={{padding:"10px 13px",borderRadius:C.radiusXs,background:C.orangeBg,border:`1px solid ${C.orangeBd}`}}>
-                <div style={{fontSize:13,fontWeight:900}}>{p.nome}</div>
+                <div style={{fontSize:13,fontWeight:600}}>{p.nome}</div>
                 <div style={{fontSize:11,color:C.textSec,margin:"2px 0 8px"}}>
                   De: {p.transferenciaOrig} · {p.transferenciaNote||"Sem observações"}
                 </div>
@@ -802,12 +802,12 @@ const Dashboard=({pacientes,equipe,role,setPacientes})=>{
 
       {/* Censo Diário — Motoristas */}
       <Card style={{padding:18}}>
-        <div style={{fontSize:13,fontWeight:900,color:C.text,marginBottom:14}}>Censo do Dia — Motoristas em Plantão</div>
+        <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:14}}>Censo do Dia — Motoristas em Plantão</div>
         <div style={{display:"flex",align:"center",gap:14,marginBottom:14,flexWrap:"wrap"}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:12,fontWeight:900,color:C.textMuted}}>Nº DE MOTORISTAS</span>
+            <span style={{fontSize:12,fontWeight:600,color:C.textMuted}}>Nº DE MOTORISTAS</span>
             <select value={numMot} onChange={e=>{const n=parseInt(e.target.value);setNumMot(n);setMotoristas(Array.from({length:n},(_,i)=>motoristas[i]||{km:"",horas:""}));}}
-              style={{padding:"6px 10px",borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,fontSize:13,fontFamily:"inherit"}}>
+              style={{padding:"7px 11px",borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,fontSize:13,fontFamily:"inherit",fontWeight:400,outline:"none"}}>
               {[1,2,3,4,5].map(n=><option key={n} value={n}>{n}</option>)}
             </select>
           </div>
@@ -815,21 +815,21 @@ const Dashboard=({pacientes,equipe,role,setPacientes})=>{
         <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
           {motoristas.slice(0,numMot).map((m,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:C.surfaceAlt,borderRadius:C.radiusXs,border:`1px solid ${C.border}`}}>
-              <span style={{fontSize:12,fontWeight:900,color:C.textMuted,minWidth:70}}>Motorista {i+1}</span>
+              <span style={{fontSize:12,fontWeight:600,color:C.textMuted,minWidth:70}}>Motorista {i+1}</span>
               <Input label="Km hoje" value={m.km} onChange={v=>updateMot(i,"km",v)} type="number" placeholder="0" style={{maxWidth:90}}/>
               <Input label="Horas hoje" value={m.horas} onChange={v=>updateMot(i,"horas",v)} type="number" placeholder="0" style={{maxWidth:90}}/>
             </div>
           ))}
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-          <div style={{padding:"10px 14px",background:C.primaryLt,borderRadius:C.radiusXs}}>
-            <div style={{fontSize:10,fontWeight:900,color:C.primaryDk,textTransform:"uppercase"}}>Km Acumulado no Mês</div>
-            <div style={{fontSize:22,fontWeight:900,color:C.primary}}>{(kmMes).toFixed(0)} km</div>
-            <div style={{fontSize:10,color:C.textMuted}}>Hoje: {totalKm.toFixed(0)} km</div>
+          <div style={{padding:"12px 16px",background:C.primaryLt,borderRadius:C.radiusXs}}>
+            <div style={{fontSize:10,fontWeight:600,color:C.primaryDk,textTransform:"uppercase",letterSpacing:"0.06em"}}>Km Acumulado no Mês</div>
+            <div style={{fontSize:22,fontWeight:800,color:C.primary,marginTop:4}}>{(kmMes).toFixed(0)} km</div>
+            <div style={{fontSize:10,color:C.textMuted,marginTop:2}}>Hoje: {totalKm.toFixed(0)} km</div>
           </div>
-          <div style={{padding:"10px 14px",background:C.blueBg,borderRadius:C.radiusXs}}>
-            <div style={{fontSize:10,fontWeight:900,color:C.blue,textTransform:"uppercase"}}>Horas Acumuladas no Mês</div>
-            <div style={{fontSize:22,fontWeight:900,color:C.blue}}>{(horasMes).toFixed(0)} h</div>
+          <div style={{padding:"12px 16px",background:C.blueBg,borderRadius:C.radiusXs}}>
+            <div style={{fontSize:10,fontWeight:600,color:C.blue,textTransform:"uppercase",letterSpacing:"0.06em"}}>Horas Acumuladas no Mês</div>
+            <div style={{fontSize:22,fontWeight:800,color:C.blue,marginTop:4}}>{(horasMes).toFixed(0)} h</div>
             <div style={{fontSize:10,color:C.textMuted}}>Hoje: {totalHoras.toFixed(0)} h</div>
           </div>
         </div>
@@ -878,18 +878,18 @@ const PacientesList=({pacientes,equipe,role,setPacientes,userEmail})=>{
 
   return (
     <div style={{padding:24,display:"flex",flexDirection:"column",gap:16}}>
-      <div style={{fontSize:20,fontWeight:900,color:C.text}}>Pacientes</div>
+      <div style={{fontSize:22,fontWeight:800,color:C.text}}>Pacientes</div>
 
       <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
         <input value={busca} onChange={e=>setBusca(e.target.value)}
           placeholder="🔍  Buscar por prontuário, nome ou CID..."
-          style={{flex:1,minWidth:200,padding:"8px 13px",borderRadius:C.radiusSm,
-            border:`1.5px solid ${C.border}`,fontSize:13,fontFamily:"inherit",fontWeight:300,outline:"none"}}/>
+          style={{flex:1,minWidth:200,padding:"9px 14px",borderRadius:"999px",
+            border:`1.5px solid ${C.border}`,fontSize:13,fontFamily:"inherit",fontWeight:400,outline:"none",background:C.surface}}/>
         {Object.entries(filtroLabels).map(([k,v])=>(
           <button key={k} onClick={()=>setFiltro(k)}
-            style={{padding:"5px 11px",borderRadius:15,border:`1.5px solid ${filtro===k?C.primary:C.border}`,
+            style={{padding:"6px 13px",borderRadius:"999px",border:`1.5px solid ${filtro===k?C.primary:C.border}`,
               background:filtro===k?C.primaryLt:"transparent",color:filtro===k?C.primaryDk:C.textSec,
-              fontSize:11,fontWeight:filtro===k?900:300,cursor:"pointer",fontFamily:"inherit"}}>
+              fontSize:11,fontWeight:filtro===k?700:400,cursor:"pointer",fontFamily:"inherit",transition:"all 0.12s"}}>
             {v}
           </button>
         ))}
@@ -915,17 +915,17 @@ const PacientesList=({pacientes,equipe,role,setPacientes,userEmail})=>{
                 style={{width:"100%",padding:"13px 16px",background:"none",border:"none",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}}>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
-                    <span style={{fontSize:14,fontWeight:900,color:C.text}}>{p.nome}</span>
+                    <span style={{fontSize:14,fontWeight:700,color:C.text}}>{p.nome}</span>
                     <Badge status={p.status}/>
                     {p.ad&&<AdBadge val={p.ad}/>}
                   </div>
-                  <div style={{fontSize:11,color:C.textMuted,marginTop:2}}>
+                  <div style={{fontSize:11,color:C.textMuted,marginTop:3}}>
                     {idade!=null?`${idade} anos · `:""}📋 {p.id} · {p.equipe}
                     {p.cid&&` · ${p.cid}`}
                   </div>
                 </div>
                 {dias!=null&&(
-                  <div style={{padding:"4px 10px",borderRadius:10,fontWeight:900,fontSize:12,whiteSpace:"nowrap",
+                  <div style={{padding:"4px 11px",borderRadius:999,fontWeight:700,fontSize:12,whiteSpace:"nowrap",
                     background:alertDias?C.dangerBg:warnDias?C.orangeBg:C.primaryLt,
                     color:alertDias?C.danger:warnDias?C.orange:C.primaryDk}}>
                     {dias}d
@@ -940,9 +940,9 @@ const PacientesList=({pacientes,equipe,role,setPacientes,userEmail})=>{
                   <div style={{display:"flex",gap:0,borderBottom:`1px solid ${C.border}`,background:C.surfaceAlt}}>
                     {[["dados","📋 Dados"],["disps","🩺 Dispositivos"],["ativ","📅 Atividades"],["tele","📡 Telemonitoramento"]].map(([k,lbl])=>(
                       <button key={k} onClick={()=>setTabPac(prev=>({...prev,[p.id]:k}))}
-                        style={{padding:"8px 14px",border:"none",borderBottom:tab===k?`2px solid ${C.primary}`:"2px solid transparent",
-                          background:"transparent",cursor:"pointer",fontSize:11,fontWeight:tab===k?900:300,
-                          color:tab===k?C.primaryDk:C.textMuted,fontFamily:"inherit"}}>
+                        style={{padding:"9px 14px",border:"none",borderBottom:tab===k?`2px solid ${C.primary}`:"2px solid transparent",
+                          background:"transparent",cursor:"pointer",fontSize:11,fontWeight:tab===k?700:400,
+                          color:tab===k?C.primaryDk:C.textMuted,fontFamily:"inherit",transition:"color 0.12s"}}>
                         {lbl}
                       </button>
                     ))}
@@ -956,8 +956,8 @@ const PacientesList=({pacientes,equipe,role,setPacientes,userEmail})=>{
                             ["CPF",p.cpf||"—"],["Telefone",p.telefone||"—"],["Cuidador",p.nomeCuidador||"—"],
                             ["Tel. Cuidador",p.telCuidador||"—"],["Docs. Recebidos",p.dataDocumentos||"—"],["Admissão",p.admissao||"—"],
                           ].map(([l,v])=>(
-                            <div key={l}><div style={{fontSize:10,fontWeight:900,color:C.textMuted,textTransform:"uppercase"}}>{l}</div>
-                            <div style={{fontSize:12,color:C.text,marginTop:1}}>{v}</div></div>
+                            <div key={l}><div style={{fontSize:10,fontWeight:600,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</div>
+                            <div style={{fontSize:12,color:C.text,marginTop:2,fontWeight:500}}>{v}</div></div>
                           ))}
                         </div>
                         <Divider label="Clínico"/>
@@ -966,22 +966,22 @@ const PacientesList=({pacientes,equipe,role,setPacientes,userEmail})=>{
                             ["Perfil Epidemiológico",p.perfil||"—"],["Cuidados Paliativos",p.paliativo||"NÃO"],["Score",p.score||"—"],
                             ["O2 Indicação",p.o2Indicacao||"—"],["Classificação AD",p.ad||"—"],["Origem",`${p.origem||"—"}${p.origemDetalhe?" — "+p.origemDetalhe:""}`],
                           ].map(([l,v])=>(
-                            <div key={l}><div style={{fontSize:10,fontWeight:900,color:C.textMuted,textTransform:"uppercase"}}>{l}</div>
-                            <div style={{fontSize:12,color:C.text,marginTop:1}}>{v}</div></div>
+                            <div key={l}><div style={{fontSize:10,fontWeight:600,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.05em"}}>{l}</div>
+                            <div style={{fontSize:12,color:C.text,marginTop:2,fontWeight:500}}>{v}</div></div>
                           ))}
                         </div>
                         {p.comorbidades?.length>0&&(
                           <div>
-                            <div style={{fontSize:10,fontWeight:900,color:C.textMuted,textTransform:"uppercase",marginBottom:6}}>Comorbidades / DCNTs</div>
+                            <div style={{fontSize:10,fontWeight:600,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:7}}>Comorbidades / DCNTs</div>
                             <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                               {p.comorbidades.map(c=>(
-                                <span key={c} style={{padding:"2px 8px",borderRadius:10,background:C.neutralBg,border:`1px solid ${C.border}`,fontSize:11,fontWeight:900}}>{c}</span>
+                                <span key={c} style={{padding:"3px 9px",borderRadius:999,background:C.neutralBg,border:`1px solid ${C.border}`,fontSize:11,fontWeight:600}}>{c}</span>
                               ))}
                             </div>
                           </div>
                         )}
-                        <div><div style={{fontSize:10,fontWeight:900,color:C.textMuted,textTransform:"uppercase"}}>Motivo de Encaminhamento</div>
-                        <div style={{fontSize:12,color:C.text,marginTop:1}}>{p.motivo||"—"}</div></div>
+                        <div><div style={{fontSize:10,fontWeight:600,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.05em"}}>Motivo de Encaminhamento</div>
+                        <div style={{fontSize:12,color:C.text,marginTop:2,fontWeight:400}}>{p.motivo||"—"}</div></div>
                       </div>
                     )}
 
@@ -992,16 +992,16 @@ const PacientesList=({pacientes,equipe,role,setPacientes,userEmail})=>{
                             <div key={k} style={{padding:"8px 11px",borderRadius:C.radiusXs,
                               border:`1.5px solid ${p[k]?C.primary:C.border}`,
                               background:p[k]?C.primaryLt:C.surfaceAlt}}>
-                              <div style={{fontSize:12,fontWeight:p[k]?900:300,color:p[k]?C.primaryDk:C.textMuted}}>
+                              <div style={{fontSize:12,fontWeight:p[k]?600:400,color:p[k]?C.primaryDk:C.textMuted}}>
                                 {DISPS_ICONS[k]} {DISPS_LABELS[k]}
                               </div>
-                              <div style={{fontSize:10,color:p[k]?C.primary:C.neutral,fontWeight:900}}>{p[k]?"ATIVO":"INATIVO"}</div>
+                              <div style={{fontSize:10,color:p[k]?C.primary:C.neutral,fontWeight:600}}>{p[k]?"ATIVO":"INATIVO"}</div>
                             </div>
                           ))}
                         </div>
                         {p.ATB&&(
-                          <div style={{padding:"10px 13px",background:C.yellowBg,borderRadius:C.radiusXs,border:`1px solid ${C.yellow}`}}>
-                            <div style={{fontSize:11,fontWeight:900,color:C.brown}}>ANTIBIOTICOTERAPIA PARENTERAL</div>
+                          <div style={{padding:"12px 14px",background:C.orangeBg,borderRadius:C.radiusXs,border:`1px solid ${C.orangeBd}`}}>
+                            <div style={{fontSize:11,fontWeight:700,color:C.brown}}>ANTIBIOTICOTERAPIA PARENTERAL</div>
                             <div style={{fontSize:13,marginTop:4}}>ATB 1: <strong>{p.atb1||"—"}</strong></div>
                             {p.atb2&&<div style={{fontSize:13}}>ATB 2: <strong>{p.atb2}</strong></div>}
                           </div>
@@ -1016,7 +1016,7 @@ const PacientesList=({pacientes,equipe,role,setPacientes,userEmail})=>{
                           {[["Médico","🩺",4],["Enfermagem","👩‍⚕️",12],["Técnico Enf.","🧑‍⚕️",18],["EMAP","🏃",3],["Fisioterapia","💪",8],["Fonoaudiologia","🗣️",2]].map(([cat,ic,n])=>(
                             <div key={cat} style={{padding:"10px 12px",borderRadius:C.radiusXs,background:C.surfaceAlt,border:`1px solid ${C.border}`}}>
                               <div style={{fontSize:12,color:C.textSec}}>{ic} {cat}</div>
-                              <div style={{fontSize:20,fontWeight:900,color:C.primary,marginTop:3}}>{n}</div>
+                              <div style={{fontSize:20,fontWeight:800,color:C.primary,marginTop:3}}>{n}</div>
                               <div style={{fontSize:10,color:C.textMuted}}>visitas</div>
                             </div>
                           ))}
@@ -1095,7 +1095,7 @@ const FormClinico=({form,onChange})=>{
       </div>
 
       {form.ATB&&(
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,padding:"12px",background:C.yellowBg,borderRadius:C.radiusXs,border:`1px solid ${C.yellow}`}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,padding:"14px",background:C.orangeBg,borderRadius:C.radiusSm,border:`1px solid ${C.orangeBd}`}}>
           <Select label="ATB 1 (obrigatório)" value={form.atb1} onChange={v=>set("atb1",v)}
             options={ATB_LIST} placeholder="Selecione" required/>
           <Select label="ATB 2 (opcional)" value={form.atb2} onChange={v=>set("atb2",v)}
@@ -1106,12 +1106,12 @@ const FormClinico=({form,onChange})=>{
       <Divider label="Comorbidades e DCNTs"/>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:6}}>
         {COMORBIDADES_LIST.map(c=>(
-          <label key={c} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 9px",
-            borderRadius:C.radiusXs,border:`1.5px solid ${form.comorbidades.includes(c)?C.blue:C.border}`,
-            background:form.comorbidades.includes(c)?C.blueBg:C.surface,cursor:"pointer",userSelect:"none"}}>
+          <label key={c} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 10px",
+            borderRadius:C.radiusXs,border:`1.5px solid ${form.comorbidades.includes(c)?C.primary:C.border}`,
+            background:form.comorbidades.includes(c)?C.primaryLt:C.surface,cursor:"pointer",userSelect:"none",transition:"all 0.12s"}}>
             <input type="checkbox" checked={form.comorbidades.includes(c)} onChange={()=>toggleCom(c)}
-              style={{accentColor:C.blue,width:13,height:13}}/>
-            <span style={{fontSize:11,fontWeight:form.comorbidades.includes(c)?900:300,color:form.comorbidades.includes(c)?C.blue:C.textSec}}>{c}</span>
+              style={{accentColor:C.primary,width:13,height:13}}/>
+            <span style={{fontSize:11,fontWeight:form.comorbidades.includes(c)?700:400,color:form.comorbidades.includes(c)?C.primaryDk:C.textSec}}>{c}</span>
           </label>
         ))}
       </div>
@@ -1183,21 +1183,21 @@ const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
 
   return (
     <div style={{padding:24,display:"flex",flexDirection:"column",gap:18,maxWidth:820}}>
-      <div style={{fontSize:20,fontWeight:900,color:C.text}}>Avaliação / Admissão</div>
+      <div style={{fontSize:22,fontWeight:800,color:C.text}}>Avaliação / Admissão</div>
 
       {/* Tabs internas */}
       <div style={{display:"flex",gap:0,borderBottom:`1px solid ${C.border}`}}>
         {[["lista","📋 Em Avaliação"],["registrar","➕ Registrar Avaliado"],["negativas","❌ Negativas"]].map(([k,lbl])=>(
           <button key={k} onClick={()=>setTab(k)}
-            style={{padding:"9px 16px",border:"none",borderBottom:tab===k?`2px solid ${C.primary}`:"2px solid transparent",
-              background:"transparent",cursor:"pointer",fontSize:12,fontWeight:tab===k?900:300,
-              color:tab===k?C.primaryDk:C.textMuted,fontFamily:"inherit"}}>
+            style={{padding:"10px 16px",border:"none",borderBottom:tab===k?`2px solid ${C.primary}`:"2px solid transparent",
+              background:"transparent",cursor:"pointer",fontSize:12,fontWeight:tab===k?700:400,
+              color:tab===k?C.primaryDk:C.textMuted,fontFamily:"inherit",transition:"color 0.12s"}}>
             {lbl} {k==="lista"?`(${emAval.length})`:k==="negativas"?`(${negativas.length})`:""}
           </button>
         ))}
       </div>
 
-      {savedMsg&&<div style={{padding:"8px 14px",background:C.primaryLt,borderRadius:C.radiusXs,fontSize:13,fontWeight:900,color:C.primaryDk}}>{savedMsg}</div>}
+      {savedMsg&&<div style={{padding:"10px 16px",background:C.successBg,borderRadius:C.radiusXs,fontSize:13,fontWeight:600,color:C.success,border:`1px solid ${C.successBd}`}}>{savedMsg}</div>}
 
       {/* Lista em avaliação */}
       {tab==="lista"&&(
@@ -1206,24 +1206,24 @@ const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
           {emAval.map(p=>{
             const idade=calcIdade(p.nascimento);
             return (
-              <Card key={p.id} style={{padding:"14px 16px"}}>
+              <Card key={p.id} style={{padding:"16px 18px"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
                   <div>
-                    <div style={{fontSize:14,fontWeight:900,color:C.text}}>{p.nome}</div>
-                    <div style={{fontSize:11,color:C.textMuted,marginTop:2}}>
+                    <div style={{fontSize:14,fontWeight:700,color:C.text}}>{p.nome}</div>
+                    <div style={{fontSize:11,color:C.textMuted,marginTop:3}}>
                       {idade!=null?`${idade} anos · `:""}📋 {p.id} · {p.equipe}
                     </div>
-                    <div style={{fontSize:12,color:C.textSec,marginTop:3}}>
+                    <div style={{fontSize:12,color:C.textSec,marginTop:4}}>
                       Origem: {p.origemTipo||"—"}{p.origemDetalhe?` — ${p.origemDetalhe}`:""} · Docs: {p.dataDocumentos||"—"}
                     </div>
-                    <div style={{fontSize:12,color:C.textSec,marginTop:1}}>Motivo: {p.motivo||"—"}</div>
+                    <div style={{fontSize:12,color:C.textSec,marginTop:2}}>Motivo: {p.motivo||"—"}</div>
                   </div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
                     <Btn variant="success" size="sm" onClick={()=>{setAdmAlvo(p);setAdmClinico({...FORM_CLINICO_INIT});}}>✅ Admitir</Btn>
                     <div style={{display:"flex",gap:5,alignItems:"center"}}>
                       <input value={negMotivo[p.id]||""} placeholder="Motivo da negativa..."
                         onChange={e=>setNegMotivo(prev=>({...prev,[p.id]:e.target.value}))}
-                        style={{padding:"5px 9px",borderRadius:C.radiusXs,border:`1px solid ${C.border}`,fontSize:12,fontFamily:"inherit",width:180}}/>
+                        style={{padding:"6px 10px",borderRadius:"999px",border:`1.5px solid ${C.border}`,fontSize:12,fontFamily:"inherit",width:180,outline:"none"}}/>
                       <Btn variant="secondary" size="sm" onClick={()=>handleNegativa(p)}>❌ Não Elegível</Btn>
                     </div>
                   </div>
@@ -1238,7 +1238,7 @@ const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
       {tab==="registrar"&&(
         <div style={{display:"flex",flexDirection:"column",gap:16}}>
           {prontuario&&(
-            <div style={{padding:"10px 14px",background:C.yellowBg,borderRadius:C.radiusXs,border:`1px solid ${C.yellow}`,fontSize:13,color:C.brown,fontWeight:900}}>
+            <div style={{padding:"11px 15px",background:C.primaryLt,borderRadius:C.radiusXs,border:`1px solid ${C.primary}`,fontSize:13,color:C.primaryDk,fontWeight:600}}>
               📋 Prontuário provisório: {prontuario}
             </div>
           )}
@@ -1276,9 +1276,9 @@ const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           {negativas.length===0&&<div style={{color:C.textMuted,fontSize:13,padding:"20px 0"}}>Nenhuma negativa registrada.</div>}
           {negativas.map(p=>(
-            <div key={p.id} style={{padding:"10px 14px",borderRadius:C.radiusXs,background:C.neutralBg,border:`1px solid ${C.neutralBd}`,fontSize:12}}>
-              <div style={{fontWeight:900,color:C.text}}>{p.nome} <Badge status="negativa"/></div>
-              <div style={{color:C.textSec,marginTop:3}}>{p.motivo||"—"}</div>
+            <div key={p.id} style={{padding:"12px 15px",borderRadius:C.radiusXs,background:C.neutralBg,border:`1px solid ${C.neutralBd}`,fontSize:12}}>
+              <div style={{fontWeight:600,color:C.text,display:"flex",alignItems:"center",gap:8}}>{p.nome} <Badge status="negativa"/></div>
+              <div style={{color:C.textSec,marginTop:4}}>{p.motivo||"—"}</div>
               <div style={{color:C.textMuted,fontSize:11,marginTop:2}}>Equipe: {p.equipe} · {p.nascimento}</div>
             </div>
           ))}
@@ -1289,7 +1289,7 @@ const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
       {admAlvo&&(
         <Modal title={`Admitir — ${admAlvo.nome}`} onClose={()=>setAdmAlvo(null)} width={750}>
           <div style={{display:"flex",flexDirection:"column",gap:16}}>
-            <div style={{padding:"8px 13px",background:C.primaryLt,borderRadius:C.radiusXs,fontSize:12}}>
+            <div style={{padding:"10px 14px",background:C.primaryLt,borderRadius:C.radiusXs,fontSize:12,color:C.primaryDk,fontWeight:500}}>
               <strong>Data de Admissão:</strong> {hoje()} (gerada automaticamente)
             </div>
             <FormClinico form={admClinico} onChange={setAdmClinico}/>
@@ -1312,8 +1312,8 @@ const DashboardCoordenacao=({pacientes,onSelectEquipe})=>{
   const mediaATB=totalATB/22;
   return (
     <div style={{padding:24,display:"flex",flexDirection:"column",gap:20}}>
-      <div><div style={{fontSize:20,fontWeight:900,color:C.text}}>Painel Geral — Coordenação</div>
-      <div style={{fontSize:12,color:C.textMuted,marginTop:2}}>22 equipes · {new Date().toLocaleDateString("pt-BR")}</div></div>
+      <div><div style={{fontSize:22,fontWeight:800,color:C.text}}>Painel Geral — Coordenação</div>
+      <div style={{fontSize:12,color:C.textMuted,marginTop:3}}>22 equipes · {new Date().toLocaleDateString("pt-BR")}</div></div>
       <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
         <KPI label="Pacientes Ativos" value={EQUIPE_STATS.reduce((s,e)=>s+e.ativos,0)} icon="👥" color={C.primary}/>
         <KPI label="Em Avaliação" value={EQUIPE_STATS.reduce((s,e)=>s+e.avaliados,0)} icon="🔍" color={C.orange}/>
@@ -1322,8 +1322,8 @@ const DashboardCoordenacao=({pacientes,onSelectEquipe})=>{
       </div>
       <Card style={{padding:18}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <div style={{fontSize:13,fontWeight:900,color:C.text}}>Mapa de Carga ATB — 22 Equipes</div>
-          <div style={{display:"flex",gap:8,fontSize:10,color:C.textMuted,fontWeight:900}}>
+          <div style={{fontSize:14,fontWeight:700,color:C.text}}>Mapa de Carga ATB — 22 Equipes</div>
+          <div style={{display:"flex",gap:8,fontSize:10,color:C.textMuted,fontWeight:600}}>
             <span style={{color:C.success}}>● Normal</span>
             <span style={{color:C.orange}}>● Atenção</span>
             <span style={{color:C.danger}}>● Sobrecarga</span>
@@ -1339,15 +1339,15 @@ const DashboardCoordenacao=({pacientes,onSelectEquipe})=>{
             return (
               <button key={e.nome} onClick={()=>onSelectEquipe(e.nome)}
                 style={{padding:"9px 11px",borderRadius:C.radiusXs,background:bg,border:`1.5px solid ${bd}`,cursor:"pointer",textAlign:"left"}}>
-                <div style={{fontSize:11,fontWeight:900,color:tc,marginBottom:3}}>{e.nome}</div>
-                <div style={{fontSize:11,color:C.textSec,display:"flex",flexDirection:"column",gap:1}}>
+                <div style={{fontSize:11,fontWeight:700,color:tc,marginBottom:4}}>{e.nome}</div>
+                <div style={{fontSize:11,color:C.textSec,display:"flex",flexDirection:"column",gap:2}}>
                   <span>👥 {e.ativos} ativos</span>
                   <span>🧬 {e.ATB} ATB</span>
                   <span>🩹 {e.CurativoEsp} cur.</span>
                   <span>🚑 {e.motoristas} mot.</span>
                 </div>
-                {crit&&<div style={{fontSize:9,fontWeight:900,color:C.danger,marginTop:4}}>⚠ SOBRECARGA ATB</div>}
-                {alert&&!crit&&<div style={{fontSize:9,fontWeight:900,color:C.orange,marginTop:4}}>⚡ ATENÇÃO</div>}
+                {crit&&<div style={{fontSize:9,fontWeight:700,color:C.danger,marginTop:5}}>⚠ SOBRECARGA ATB</div>}
+                {alert&&!crit&&<div style={{fontSize:9,fontWeight:700,color:C.orange,marginTop:5}}>⚡ ATENÇÃO</div>}
               </button>
             );
           })}
@@ -1361,14 +1361,14 @@ const CoordEquipes=({onSelectEquipe})=>{
   const mediaATB=EQUIPE_STATS.reduce((s,e)=>s+e.ATB,0)/22;
   return (
     <div style={{padding:24}}>
-      <div style={{fontSize:20,fontWeight:900,color:C.text,marginBottom:4}}>22 Equipes — Detalhado</div>
+      <div style={{fontSize:22,fontWeight:800,color:C.text,marginBottom:4}}>22 Equipes — Detalhado</div>
       <div style={{fontSize:12,color:C.textMuted,marginBottom:16}}>Clique para ver pacientes da equipe</div>
       <div style={{overflowX:"auto"}}>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
           <thead>
             <tr style={{background:C.surfaceAlt}}>
               {["Equipe","Ativos","Em Aval.","SVD","O₂","ATB","Curativo","Motoristas","Status"].map(h=>(
-                <th key={h} style={{padding:"9px 11px",textAlign:"left",fontWeight:900,color:C.textMuted,borderBottom:`2px solid ${C.border}`,whiteSpace:"nowrap",letterSpacing:"0.03em",fontSize:10,textTransform:"uppercase"}}>{h}</th>
+                <th key={h} style={{padding:"10px 12px",textAlign:"left",fontWeight:600,color:C.textMuted,borderBottom:`2px solid ${C.border}`,whiteSpace:"nowrap",letterSpacing:"0.05em",fontSize:10,textTransform:"uppercase"}}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -1378,18 +1378,18 @@ const CoordEquipes=({onSelectEquipe})=>{
               return (
                 <tr key={e.nome} onClick={()=>onSelectEquipe(e.nome)}
                   style={{borderBottom:`1px solid ${C.border}`,cursor:"pointer",background:i%2?C.surfaceAlt:C.surface}}>
-                  <td style={{padding:"9px 11px",fontWeight:900,color:C.primary}}>{e.nome}</td>
-                  <td style={{padding:"9px 11px",fontWeight:900}}>{e.ativos}</td>
-                  <td style={{padding:"9px 11px",color:e.avaliados>0?C.orange:C.textMuted}}>{e.avaliados}</td>
-                  <td style={{padding:"9px 11px"}}>{e.SVD}</td>
-                  <td style={{padding:"9px 11px"}}>{e.O2}</td>
-                  <td style={{padding:"9px 11px",fontWeight:alert?900:300,color:alert?C.danger:C.text}}>{e.ATB}</td>
-                  <td style={{padding:"9px 11px"}}>{e.CurativoEsp}</td>
-                  <td style={{padding:"9px 11px"}}>{e.motoristas}</td>
-                  <td style={{padding:"9px 11px"}}>
+                  <td style={{padding:"10px 12px",fontWeight:700,color:C.primary}}>{e.nome}</td>
+                  <td style={{padding:"10px 12px",fontWeight:700}}>{e.ativos}</td>
+                  <td style={{padding:"10px 12px",color:e.avaliados>0?C.orange:C.textMuted,fontWeight:e.avaliados>0?600:400}}>{e.avaliados}</td>
+                  <td style={{padding:"10px 12px"}}>{e.SVD}</td>
+                  <td style={{padding:"10px 12px"}}>{e.O2}</td>
+                  <td style={{padding:"10px 12px",fontWeight:alert?700:400,color:alert?C.danger:C.text}}>{e.ATB}</td>
+                  <td style={{padding:"10px 12px"}}>{e.CurativoEsp}</td>
+                  <td style={{padding:"10px 12px"}}>{e.motoristas}</td>
+                  <td style={{padding:"10px 12px"}}>
                     {alert
-                      ?<span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:C.dangerBg,color:C.danger,fontWeight:900}}>⚠ ALERTA ATB</span>
-                      :<span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:C.successBg,color:C.success,fontWeight:900}}>✓ Normal</span>}
+                      ?<span style={{fontSize:9,padding:"3px 8px",borderRadius:999,background:C.dangerBg,color:C.danger,fontWeight:700}}>⚠ ALERTA ATB</span>
+                      :<span style={{fontSize:9,padding:"3px 8px",borderRadius:999,background:C.successBg,color:C.success,fontWeight:700}}>✓ Normal</span>}
                   </td>
                 </tr>
               );
