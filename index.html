@@ -1838,19 +1838,81 @@ const FormClinico=({form,onChange})=>{
 const AVAL_INIT={nome:"",nascimento:"",cpf:"",telefone:"",sexo:"Feminino",nomeCuidador:"",telCuidador:"",dataDocumentos:"",equipe:"Equipe 01",origemTipo:"",origemDetalhe:"",motivo:""};
 
 const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
-  const [tab,setTab]=useState("lista");
+  /* ── novo paciente modal ── */
+  const [novoOpen,setNovoOpen]=useState(false);
   const [form,setForm]=useState({...AVAL_INIT,equipe:equipeDefault||"Equipe 01"});
   const [errs,setErrs]=useState({});
-  const [savedMsg,setSavedMsg]=useState("");
-  const [admAlvo,setAdmAlvo]=useState(null); // paciente em avaliação sendo admitido
+  /* ── expandido ── */
+  const [expandido,setExpandido]=useState(null);
+  const [tabExp,setTabExp]=useState({}); // {id:"dados"|"avaliacao"|"atividades"|"decisao"}
+  /* ── edição do paciente expandido ── */
+  const [editForms,setEditForms]=useState({});  // {id: {dados:..., nota:...}}
+  /* ── atividades ── */
+  const [atividadeAlvo,setAtividadeAlvo]=useState(null);
+  /* ── admissão clínica ── */
+  const [admAlvo,setAdmAlvo]=useState(null);
   const [admClinico,setAdmClinico]=useState({...FORM_CLINICO_INIT});
-  const [negMotivo,setNegMotivo]=useState({});
+  /* ── negativa inline ── */
+  const [negMotivos,setNegMotivos]=useState({});
+  /* ── msg ── */
+  const [savedMsg,setSavedMsg]=useState("");
+  const flash=(m)=>{setSavedMsg(m);setTimeout(()=>setSavedMsg(""),3500);};
 
   const prontuario=gerarProntuario(form.nome,form.nascimento);
   const emAval=pacientes.filter(p=>p.status==="avaliacao"&&(role==="equipe"?p.equipe===equipeDefault:true));
-  const negativas=pacientes.filter(p=>p.status==="negativa"&&(role==="equipe"?p.equipe===equipeDefault:true));
 
   const setF=(k,v)=>setForm(f=>({...f,[k]:v}));
+
+  /* ── helpers de estado de edição ── */
+  const getEF=(id)=>editForms[id]||{};
+  const setEF=(id,patch)=>setEditForms(prev=>({...prev,[id]:{...prev[id],...patch}}));
+  const getDados=(p)=>({
+    nome:p.nome,nascimento:p.nascimento,sexo:p.sexo||"",cpf:p.cpf||"",
+    telefone:p.telefone||"",nomeCuidador:p.nomeCuidador||"",telCuidador:p.telCuidador||"",
+    dataDocumentos:p.dataDocumentos||"",equipe:p.equipe,motivo:p.motivo||"",
+    origemTipo:p.origemTipo||"",origemDetalhe:p.origemDetalhe||"",
+  });
+  const getNota=(p)=>({...NOTA_AVAL_INIT,...(p.avaliacaoNota||{})});
+
+  const abrirExpandido=(id,p)=>{
+    setExpandido(prev=>prev===id?null:id);
+    if(!editForms[id]) setEditForms(prev=>({...prev,[id]:{dados:getDados(p),nota:getNota(p)}}));
+    if(!tabExp[id]) setTabExp(prev=>({...prev,[id]:"avaliacao"}));
+  };
+
+  const salvarDados=(p)=>{
+    const d=getEF(p.id).dados||getDados(p);
+    setPacientes(prev=>prev.map(x=>x.id===p.id?{...x,...d}:x));
+    flash("✓ Dados atualizados.");
+  };
+
+  const salvarNota=(p)=>{
+    const n=getEF(p.id).nota||getNota(p);
+    setPacientes(prev=>prev.map(x=>x.id===p.id?{...x,avaliacaoNota:n}:x));
+    flash("✓ Avaliação registrada.");
+  };
+
+  const salvarAtividade=(pac,ativ)=>{
+    setPacientes(prev=>prev.map(p=>p.id===pac.id?{...p,atividades:[...(p.atividades||[]),ativ]}:p));
+    setAtividadeAlvo(null);
+  };
+
+  const handleAdmitir=()=>{
+    if(!admClinico.cid||!admClinico.perfil||!admClinico.ad){
+      alert("Preencha CID, Perfil Epidemiológico e Classificação AD."); return;
+    }
+    setPacientes(prev=>prev.map(p=>p.id===admAlvo.id?{...p,status:"ativo",admissao:hoje(),...admClinico}:p));
+    setAdmAlvo(null); setExpandido(null);
+    flash("✓ Paciente admitido com sucesso!");
+  };
+
+  const handleNegativa=(p)=>{
+    const m=negMotivos[p.id];
+    if(!m){alert("Informe o motivo da negativa."); return;}
+    setPacientes(prev=>prev.map(x=>x.id===p.id?{...x,status:"negativa",motivo:m}:x));
+    setExpandido(null);
+    flash("✓ Paciente registrado como Não Elegível.");
+  };
 
   const validate=()=>{
     const e={};
@@ -1858,8 +1920,7 @@ const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
     if(!form.nascimento.trim()) e.nascimento="Obrigatório";
     if(!form.motivo.trim()) e.motivo="Descreva o motivo";
     if(!prontuario) e.nome="Mín. 2 palavras";
-    setErrs(e);
-    return !Object.keys(e).length;
+    setErrs(e); return !Object.keys(e).length;
   };
 
   const handleRegistrar=()=>{
@@ -1869,141 +1930,265 @@ const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
       cid:"",cidCronico:"",cidInternacao:"",perfil:"",ad:"",score:0,
       SVD:false,O2:false,SNE:false,GTT:false,TQT:false,VM:false,
       Hipodermoclise:false,ATB:false,CurativoEsp:false,
-      atb1:"",atb2:"",o2Indicacao:"Não",paliativo:"NÃO",comorbidades:[],
+      atb1:"",atb2:"",atb1Outro:"",atb2Outro:"",o2Indicacao:"Não",paliativo:"NÃO",comorbidades:[],
       transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null,
     }]);
     setForm({...AVAL_INIT,equipe:equipeDefault||"Equipe 01"});
-    setSavedMsg("✓ Paciente registrado para avaliação!"); setTimeout(()=>setSavedMsg(""),3500);
-    setTab("lista");
+    setNovoOpen(false);
+    flash("✓ Paciente registrado para avaliação!");
   };
 
-  const handleAdmitir=()=>{
-    if(!admClinico.cid||!admClinico.perfil||!admClinico.ad){
-      alert("Preencha CID, Perfil Epidemiológico e Classificação AD."); return;
-    }
-    setPacientes(prev=>prev.map(p=>p.id===admAlvo.id?{
-      ...p,status:"ativo",admissao:hoje(),...admClinico,
-    }:p));
-    setAdmAlvo(null);
-    setSavedMsg("✓ Paciente admitido com sucesso!"); setTimeout(()=>setSavedMsg(""),3500);
-  };
-
-  const handleNegativa=(p)=>{
-    const m=negMotivo[p.id];
-    if(!m){alert("Informe o motivo da negativa."); return;}
-    setPacientes(prev=>prev.map(x=>x.id===p.id?{...x,status:"negativa",motivo:m}:x));
-  };
+  const tabStyle=(ativo)=>({
+    display:"flex",alignItems:"center",gap:6,padding:"9px 14px",border:"none",
+    borderBottom:ativo?`2px solid ${C.primary}`:"2px solid transparent",
+    background:"transparent",cursor:"pointer",fontSize:12,fontWeight:ativo?700:400,
+    color:ativo?C.primaryDk:C.textMuted,fontFamily:"inherit",transition:"color 0.12s",
+  });
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
-      <PageHeader title="Avaliação / Admissão" breadcrumb="Home › Avaliação"/>
-    <div style={{flex:1,overflowY:"auto",padding:"20px 28px",display:"flex",flexDirection:"column",gap:18,maxWidth:860}}>
 
-      {/* Tabs internas */}
-      <div style={{display:"flex",gap:0,borderBottom:`1px solid ${C.border}`}}>
-        {[["lista","Em Avaliação","clipboard"],["registrar","Registrar Avaliado","plus"],["negativas","Negativas","x"]].map(([k,lbl,ic])=>(
-          <button key={k} onClick={()=>setTab(k)}
-            style={{display:"flex",alignItems:"center",gap:6,padding:"10px 16px",border:"none",borderBottom:tab===k?`2px solid ${C.primary}`:"2px solid transparent",
-              background:"transparent",cursor:"pointer",fontSize:12,fontWeight:tab===k?700:400,
-              color:tab===k?C.primaryDk:C.textMuted,fontFamily:"inherit",transition:"color 0.12s"}}>
-            <Ico name={ic} size={13} color={tab===k?C.primaryDk:C.textMuted}/>
-            {lbl} {k==="lista"?`(${emAval.length})`:k==="negativas"?`(${negativas.length})`:""}
-          </button>
-        ))}
+      {/* Header com botão Novo Paciente */}
+      <div style={{padding:"16px 28px",borderBottom:`1px solid ${C.border}`,background:C.surface,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:3}}>Home › Avaliação</div>
+          <div style={{fontSize:20,fontWeight:800,color:C.text,letterSpacing:"-0.02em"}}>
+            Em Avaliação <span style={{fontSize:14,fontWeight:400,color:C.textMuted}}>({emAval.length} paciente{emAval.length!==1?"s":""})</span>
+          </div>
+        </div>
+        <Btn onClick={()=>setNovoOpen(true)}><Ico name="plus" size={15}/> Novo Paciente</Btn>
       </div>
 
-      {savedMsg&&<div style={{padding:"10px 16px",background:C.successBg,borderRadius:C.radiusXs,fontSize:13,fontWeight:600,color:C.success,border:`1px solid ${C.successBd}`}}>{savedMsg}</div>}
+      <div style={{flex:1,overflowY:"auto",padding:"20px 28px",display:"flex",flexDirection:"column",gap:10}}>
 
-      {/* Lista em avaliação */}
-      {tab==="lista"&&(
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {emAval.length===0&&<div style={{color:C.textMuted,fontSize:13,padding:"20px 0"}}>Nenhum paciente em avaliação.</div>}
-          {emAval.map(p=>{
-            const idade=calcIdade(p.nascimento);
-            return (
-              <Card key={p.id} style={{padding:"16px 18px"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
-                  <div>
-                    <div style={{fontSize:14,fontWeight:700,color:C.text}}>{p.nome}</div>
-                    <div style={{fontSize:11,color:C.textMuted,marginTop:3,display:"flex",alignItems:"center",gap:4}}>
-                      {idade!=null?`${idade} anos · `:""}<Ico name="note" size={11} color={C.textMuted}/> {p.id} · {p.equipe}
-                    </div>
-                    <div style={{fontSize:12,color:C.textSec,marginTop:4}}>
-                      Origem: {p.origemTipo||"—"}{p.origemDetalhe?` — ${p.origemDetalhe}`:""} · Docs: {p.dataDocumentos||"—"}
-                    </div>
-                    <div style={{fontSize:12,color:C.textSec,marginTop:2}}>Motivo: {p.motivo||"—"}</div>
+        {savedMsg&&<div style={{padding:"10px 16px",background:C.successBg,borderRadius:C.radiusXs,fontSize:13,fontWeight:600,color:C.success,border:`1px solid ${C.successBd}`}}>{savedMsg}</div>}
+
+        {emAval.length===0&&(
+          <div style={{padding:"48px",textAlign:"center",color:C.textMuted,background:C.surface,borderRadius:C.radius,border:`1.5px dashed ${C.border}`}}>
+            <div style={{marginBottom:10,display:"flex",justifyContent:"center"}}><Ico name="clipboard" size={32} color={C.textMuted}/></div>
+            <div style={{fontSize:14,fontWeight:600}}>Nenhum paciente em avaliação</div>
+            <div style={{fontSize:12,marginTop:4}}>Clique em "Novo Paciente" para registrar um encaminhamento.</div>
+          </div>
+        )}
+
+        {emAval.map(p=>{
+          const exp=expandido===p.id;
+          const idade=calcIdade(p.nascimento);
+          const ef=getEF(p.id);
+          const tab=tabExp[p.id]||"avaliacao";
+          const dados=ef.dados||getDados(p);
+          const nota=ef.nota||getNota(p);
+          const setD=(k,v)=>setEF(p.id,{dados:{...dados,[k]:v}});
+          const setN=(k,v)=>setEF(p.id,{nota:{...nota,[k]:v}});
+          const bg=avatarColor(p.nome);
+
+          return (
+            <Card key={p.id} style={{padding:0,overflow:"hidden",border:exp?`2px solid ${C.primary}`:`1px solid ${C.border}`}}>
+
+              {/* Cabeçalho do card — clicável */}
+              <div onClick={()=>abrirExpandido(p.id,p)}
+                style={{padding:"14px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:12,
+                  background:exp?C.primaryLt:C.surface,transition:"background 0.12s"}}>
+                <div style={{width:40,height:40,borderRadius:"50%",background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff",flexShrink:0}}>
+                  {initials(p.nome)}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:14,fontWeight:700,color:exp?C.primaryDk:C.text}}>{p.nome}</div>
+                  <div style={{fontSize:11,color:C.textMuted,marginTop:2,display:"flex",gap:10,flexWrap:"wrap"}}>
+                    <span>{idade!=null?`${idade} anos · `:""}Prontuário: {p.id}</span>
+                    <span>Equipe: {p.equipe}</span>
+                    {p.dataDocumentos&&<span>Docs: {p.dataDocumentos}</span>}
                   </div>
-                  <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                    <Btn variant="success" size="sm" onClick={()=>{setAdmAlvo(p);setAdmClinico({...FORM_CLINICO_INIT});}}><Ico name="check" size={13}/> Admitir</Btn>
-                    <div style={{display:"flex",gap:5,alignItems:"center"}}>
-                      <input value={negMotivo[p.id]||""} placeholder="Motivo da negativa..."
-                        onChange={e=>setNegMotivo(prev=>({...prev,[p.id]:e.target.value}))}
-                        style={{padding:"6px 10px",borderRadius:"999px",border:`1.5px solid ${C.border}`,fontSize:12,fontFamily:"inherit",width:180,outline:"none"}}/>
-                      <Btn variant="secondary" size="sm" onClick={()=>handleNegativa(p)}><Ico name="x" size={13}/> Não Elegível</Btn>
-                    </div>
+                  <div style={{fontSize:12,color:C.textSec,marginTop:2}}>
+                    {p.origemTipo&&<span>Origem: {p.origemTipo}{p.origemDetalhe?` — ${p.origemDetalhe}`:""} · </span>}
+                    {p.motivo&&<span>{p.motivo}</span>}
                   </div>
                 </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+                  {p.avaliacaoNota&&<span style={{padding:"2px 9px",borderRadius:999,background:C.orangeBg,color:C.brown,fontSize:10,fontWeight:700,border:`1px solid ${C.orangeBd}`}}>Avaliação registrada</span>}
+                  <Ico name={exp?"x":"eye"} size={16} color={exp?C.primary:C.textMuted}/>
+                </div>
+              </div>
 
-      {/* Registrar novo avaliado */}
-      {tab==="registrar"&&(
-        <div style={{display:"flex",flexDirection:"column",gap:16}}>
-          {prontuario&&(
-            <div style={{padding:"11px 15px",background:C.primaryLt,borderRadius:C.radiusXs,border:`1px solid ${C.primary}`,fontSize:13,color:C.primaryDk,fontWeight:600}}>
-              <span style={{display:"flex",alignItems:"center",gap:6}}><Ico name="note" size={14} color={C.primaryDk}/> Prontuário provisório: {prontuario}</span>
-            </div>
-          )}
-          <Divider label="Identificação"/>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-            <div style={{gridColumn:"1/-1"}}>
-              <Input label="Nome Completo" value={form.nome} onChange={v=>setF("nome",v)} mask="name" required error={errs.nome} placeholder="Nome completo do paciente"/>
-            </div>
-            <Input label="Data de Nascimento" value={form.nascimento} onChange={v=>setF("nascimento",v)} mask="date" required error={errs.nascimento} placeholder="DD/MM/AAAA"/>
-            <Select label="Sexo" value={form.sexo} onChange={v=>setF("sexo",v)} options={SEXO_OPTIONS}/>
-            <Input label="CPF" value={form.cpf} onChange={v=>setF("cpf",v)} mask="cpf" placeholder="000.000.000-00"/>
-            <Input label="Telefone do Paciente" value={form.telefone} onChange={v=>setF("telefone",v)} mask="phone"/>
-            <Input label="Nome do Cuidador" value={form.nomeCuidador} onChange={v=>setF("nomeCuidador",v)} placeholder="Nome completo"/>
-            <Input label="Telefone do Cuidador" value={form.telCuidador} onChange={v=>setF("telCuidador",v)} mask="phone"/>
-            <Input label="Data de Recebimento da Documentação" value={form.dataDocumentos} onChange={v=>setF("dataDocumentos",v)} mask="date" placeholder="DD/MM/AAAA"/>
-            {role==="coordenacao"&&(
-              <Select label="Equipe" value={form.equipe} onChange={v=>setF("equipe",v)} options={EQUIPES_LIST}/>
+              {/* Painel expandido */}
+              {exp&&(
+                <div style={{borderTop:`1px solid ${C.primary}33`}}>
+                  {/* Tabs */}
+                  <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,background:C.surface}}>
+                    {[["avaliacao","Nota de Avaliação","clipboard"],["dados","Dados do Paciente","note"],["atividades",`Atividades (${(p.atividades||[]).length})`,"activity"],["decisao","Decisão","flag"]].map(([k,lbl,ic])=>(
+                      <button key={k} onClick={()=>setTabExp(prev=>({...prev,[p.id]:k}))} style={tabStyle(tab===k)}>
+                        <Ico name={ic} size={13} color={tab===k?C.primaryDk:C.textMuted}/>{lbl}
+                      </button>
+                    ))}
+                    <div style={{flex:1}}/>
+                    <div style={{padding:"6px 12px",display:"flex",gap:6,alignItems:"center"}}>
+                      <Btn size="sm" variant="primary" onClick={()=>setAtividadeAlvo(p)}><Ico name="pencil" size={12}/> Registrar Atividade</Btn>
+                    </div>
+                  </div>
+
+                  <div style={{padding:"18px 20px"}}>
+
+                    {/* TAB — NOTA DE AVALIAÇÃO */}
+                    {tab==="avaliacao"&&(
+                      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+                          <Input label="Data de conhecimento pela equipe" value={nota.dataConhecimento} onChange={v=>setN("dataConhecimento",v)} mask="date" placeholder="DD/MM/AAAA"/>
+                          <Input label="Leito / Localização" value={nota.leito} onChange={v=>setN("leito",v)} placeholder="Ex: Leito 12 — Clínica Médica"/>
+                          <Select label="AIH" value={nota.aih} onChange={v=>setN("aih",v)}
+                            options={["Sim","Não","Aguardando"].map(x=>({value:x,label:x}))}/>
+                        </div>
+                        <Input label="Hipótese Diagnóstica" value={nota.hipotese} onChange={v=>setN("hipotese",v)} placeholder="Hipótese diagnóstica principal"/>
+                        {/* Idas ao leito */}
+                        <div>
+                          <div style={{fontSize:11,fontWeight:600,color:C.textSec,marginBottom:6}}>Idas ao leito para avaliação</div>
+                          <div style={{display:"flex",alignItems:"center",gap:10}}>
+                            <button onClick={()=>setN("idasLeito",Math.max(0,(nota.idasLeito||0)-1))}
+                              style={{width:32,height:32,borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,background:C.surface,fontSize:18,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+                            <div style={{fontSize:24,fontWeight:800,color:C.primaryDk,minWidth:40,textAlign:"center"}}>{nota.idasLeito||0}</div>
+                            <button onClick={()=>setN("idasLeito",(nota.idasLeito||0)+1)}
+                              style={{width:32,height:32,borderRadius:C.radiusXs,border:`1.5px solid ${C.primary}`,background:C.primaryLt,fontSize:18,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",color:C.primaryDk}}>+</button>
+                          </div>
+                        </div>
+                        <Select label="Motivo da Não Admissão" value={nota.motivoNaoAdm} onChange={v=>setN("motivoNaoAdm",v)}
+                          options={[{value:"",label:"Selecione (se houver)"},...MOTIVO_NAO_ADMISSAO_LIST.map(x=>({value:x,label:x}))]}/>
+                        <div>
+                          <div style={{fontSize:11,fontWeight:600,color:C.textSec,marginBottom:6}}>Observação da equipe</div>
+                          <textarea value={nota.observacao} onChange={e=>setN("observacao",e.target.value)}
+                            placeholder="Observações sobre a avaliação, evolução clínica, pendências..."
+                            rows={3} style={{width:"100%",padding:"10px 12px",borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,fontSize:12,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}}/>
+                        </div>
+                        <Btn onClick={()=>salvarNota(p)} variant="success"><Ico name="check" size={14}/> Salvar Avaliação</Btn>
+                      </div>
+                    )}
+
+                    {/* TAB — DADOS DO PACIENTE */}
+                    {tab==="dados"&&(
+                      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                          <div style={{gridColumn:"1/-1"}}>
+                            <Input label="Nome Completo" value={dados.nome} onChange={v=>setD("nome",v)} mask="name" required placeholder="Nome completo"/>
+                          </div>
+                          <Input label="Data de Nascimento" value={dados.nascimento} onChange={v=>setD("nascimento",v)} mask="date" placeholder="DD/MM/AAAA"/>
+                          <Select label="Sexo" value={dados.sexo} onChange={v=>setD("sexo",v)} options={SEXO_OPTIONS}/>
+                          <Input label="CPF" value={dados.cpf} onChange={v=>setD("cpf",v)} mask="cpf" placeholder="000.000.000-00"/>
+                          <Input label="Telefone do Paciente" value={dados.telefone} onChange={v=>setD("telefone",v)} mask="phone"/>
+                          <Input label="Nome do Cuidador" value={dados.nomeCuidador} onChange={v=>setD("nomeCuidador",v)} placeholder="Nome completo"/>
+                          <Input label="Telefone do Cuidador" value={dados.telCuidador} onChange={v=>setD("telCuidador",v)} mask="phone"/>
+                          <Input label="Data dos Documentos" value={dados.dataDocumentos} onChange={v=>setD("dataDocumentos",v)} mask="date" placeholder="DD/MM/AAAA"/>
+                        </div>
+                        <Divider label="Origem"/>
+                        <OrigemSelector origemTipo={dados.origemTipo} origemDetalhe={dados.origemDetalhe}
+                          onChange={(t,d)=>setEF(p.id,{dados:{...dados,origemTipo:t,origemDetalhe:d}})}/>
+                        <div>
+                          <div style={{fontSize:11,fontWeight:600,color:C.textSec,marginBottom:6}}>Motivo do Encaminhamento</div>
+                          <textarea value={dados.motivo} onChange={e=>setD("motivo",e.target.value)}
+                            placeholder="Descreva o motivo do encaminhamento"
+                            rows={2} style={{width:"100%",padding:"10px 12px",borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,fontSize:12,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}}/>
+                        </div>
+                        <Btn onClick={()=>salvarDados(p)} variant="success"><Ico name="check" size={14}/> Salvar Alterações</Btn>
+                      </div>
+                    )}
+
+                    {/* TAB — ATIVIDADES */}
+                    {tab==="atividades"&&(
+                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                        {(!p.atividades||p.atividades.length===0)
+                          ?<div style={{padding:"24px",textAlign:"center",color:C.textMuted,fontSize:13,background:C.surface,borderRadius:C.radiusSm,border:`1px dashed ${C.border}`}}>
+                              Nenhuma atividade registrada.<br/>
+                              <span style={{fontSize:11}}>Clique em "Registrar Atividade" para adicionar visitas e idas ao leito.</span>
+                            </div>
+                          :[...(p.atividades||[])].reverse().map((a,i)=>(
+                            <div key={a.id||i} style={{padding:"10px 14px",borderRadius:C.radiusSm,background:C.surface,border:`1px solid ${a.intercorrencia?C.dangerBd:C.border}`,display:"flex",gap:10,alignItems:"flex-start"}}>
+                              <div style={{width:8,height:8,borderRadius:"50%",background:a.intercorrencia?C.danger:C.success,flexShrink:0,marginTop:4}}/>
+                              <div style={{flex:1}}>
+                                <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                                  <span style={{fontSize:12,fontWeight:700,color:C.text}}>{a.tipo}</span>
+                                  <span style={{fontSize:11,color:C.textMuted}}>· {a.profissional}</span>
+                                  {a.intercorrencia&&<span style={{fontSize:10,padding:"1px 7px",borderRadius:999,background:C.dangerBg,color:C.danger,fontWeight:600}}>INTERCORRÊNCIA</span>}
+                                  <span style={{fontSize:11,color:C.textMuted,marginLeft:"auto"}}>{a.data}{a.duracao?` · ${a.duracao}`:""}</span>
+                                </div>
+                                {a.descricao&&<div style={{fontSize:12,color:C.textSec,marginTop:4}}>{a.descricao}</div>}
+                              </div>
+                            </div>
+                          ))
+                        }
+                      </div>
+                    )}
+
+                    {/* TAB — DECISÃO */}
+                    {tab==="decisao"&&(
+                      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                        <div style={{padding:"12px 15px",background:C.primaryLt,borderRadius:C.radiusXs,border:`1px solid ${C.primary}22`,fontSize:13,color:C.primaryDk}}>
+                          Defina o desfecho da avaliação para <strong>{p.nome}</strong>. A admissão gerará o prontuário definitivo e ativará o acompanhamento.
+                        </div>
+                        <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+                          <div style={{flex:1,minWidth:220,padding:16,borderRadius:C.radiusSm,border:`1.5px solid ${C.successBd}`,background:C.successBg}}>
+                            <div style={{fontSize:13,fontWeight:700,color:C.success,marginBottom:6,display:"flex",alignItems:"center",gap:6}}><Ico name="check" size={15} color={C.success}/> Admitir Paciente</div>
+                            <div style={{fontSize:12,color:C.textSec,marginBottom:12}}>Preencha o perfil clínico completo (CID, dispositivos, comorbidades) e confirme a admissão.</div>
+                            <Btn variant="success" onClick={()=>{setAdmAlvo(p);setAdmClinico({...FORM_CLINICO_INIT});}}><Ico name="check" size={14}/> Iniciar Admissão</Btn>
+                          </div>
+                          <div style={{flex:1,minWidth:220,padding:16,borderRadius:C.radiusSm,border:`1.5px solid ${C.dangerBd}`,background:C.dangerBg}}>
+                            <div style={{fontSize:13,fontWeight:700,color:C.danger,marginBottom:6,display:"flex",alignItems:"center",gap:6}}><Ico name="x" size={15} color={C.danger}/> Não Elegível</div>
+                            <div style={{fontSize:12,color:C.textSec,marginBottom:10}}>Registre o motivo da não elegibilidade para o histórico da equipe.</div>
+                            <textarea value={negMotivos[p.id]||""} onChange={e=>setNegMotivos(prev=>({...prev,[p.id]:e.target.value}))}
+                              placeholder="Descreva o motivo da não elegibilidade..."
+                              rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:C.radiusXs,border:`1.5px solid ${C.dangerBd}`,fontSize:12,fontFamily:"inherit",resize:"vertical",outline:"none",marginBottom:8,boxSizing:"border-box"}}/>
+                            <Btn variant="secondary" onClick={()=>handleNegativa(p)}><Ico name="x" size={14}/> Confirmar Não Elegível</Btn>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Modal — Novo Paciente */}
+      {novoOpen&&(
+        <Modal title="Registrar Novo Paciente para Avaliação" onClose={()=>{setNovoOpen(false);setForm({...AVAL_INIT,equipe:equipeDefault||"Equipe 01"});setErrs({});}} width={700}>
+          <div style={{display:"flex",flexDirection:"column",gap:14,maxHeight:"75vh",overflowY:"auto",paddingRight:4}}>
+            {prontuario&&(
+              <div style={{padding:"10px 14px",background:C.primaryLt,borderRadius:C.radiusXs,fontSize:12,color:C.primaryDk,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+                <Ico name="note" size={13} color={C.primaryDk}/> Prontuário provisório: {prontuario}
+              </div>
             )}
-          </div>
-          <Divider label="Origem"/>
-          <OrigemSelector origemTipo={form.origemTipo} origemDetalhe={form.origemDetalhe}
-            onChange={(t,d)=>setForm(f=>({...f,origemTipo:t,origemDetalhe:d}))}/>
-          <Divider label="Motivo do Encaminhamento"/>
-          <Input label="Descrição do Motivo" value={form.motivo} onChange={v=>setF("motivo",v)}
-            required error={errs.motivo} placeholder="Ex: Pós-AVC com necessidade de fisioterapia domiciliar"/>
-          <div style={{display:"flex",gap:10,alignItems:"center",marginTop:4}}>
-            <Btn onClick={handleRegistrar} size="lg"><Ico name="search" size={15}/> Registrar para Avaliação</Btn>
-            <Btn variant="secondary" onClick={()=>{setForm({...AVAL_INIT,equipe:equipeDefault||"Equipe 01"});setErrs({});}}>Limpar</Btn>
-          </div>
-        </div>
-      )}
-
-      {/* Histórico negativas */}
-      {tab==="negativas"&&(
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          {negativas.length===0&&<div style={{color:C.textMuted,fontSize:13,padding:"20px 0"}}>Nenhuma negativa registrada.</div>}
-          {negativas.map(p=>(
-            <div key={p.id} style={{padding:"12px 15px",borderRadius:C.radiusXs,background:C.neutralBg,border:`1px solid ${C.neutralBd}`,fontSize:12}}>
-              <div style={{fontWeight:600,color:C.text,display:"flex",alignItems:"center",gap:8}}>{p.nome} <Badge status="negativa"/></div>
-              <div style={{color:C.textSec,marginTop:4}}>{p.motivo||"—"}</div>
-              <div style={{color:C.textMuted,fontSize:11,marginTop:2}}>Equipe: {p.equipe} · {p.nascimento}</div>
+            <Divider label="Identificação"/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div style={{gridColumn:"1/-1"}}>
+                <Input label="Nome Completo" value={form.nome} onChange={v=>setF("nome",v)} mask="name" required error={errs.nome} placeholder="Nome completo do paciente"/>
+              </div>
+              <Input label="Data de Nascimento" value={form.nascimento} onChange={v=>setF("nascimento",v)} mask="date" required error={errs.nascimento} placeholder="DD/MM/AAAA"/>
+              <Select label="Sexo" value={form.sexo} onChange={v=>setF("sexo",v)} options={SEXO_OPTIONS}/>
+              <Input label="CPF" value={form.cpf} onChange={v=>setF("cpf",v)} mask="cpf" placeholder="000.000.000-00"/>
+              <Input label="Telefone do Paciente" value={form.telefone} onChange={v=>setF("telefone",v)} mask="phone"/>
+              <Input label="Nome do Cuidador" value={form.nomeCuidador} onChange={v=>setF("nomeCuidador",v)} placeholder="Nome completo"/>
+              <Input label="Telefone do Cuidador" value={form.telCuidador} onChange={v=>setF("telCuidador",v)} mask="phone"/>
+              <Input label="Data dos Documentos" value={form.dataDocumentos} onChange={v=>setF("dataDocumentos",v)} mask="date" placeholder="DD/MM/AAAA"/>
+              {role==="coordenacao"&&(
+                <Select label="Equipe" value={form.equipe} onChange={v=>setF("equipe",v)} options={EQUIPES_LIST}/>
+              )}
             </div>
-          ))}
-        </div>
+            <Divider label="Origem"/>
+            <OrigemSelector origemTipo={form.origemTipo} origemDetalhe={form.origemDetalhe}
+              onChange={(t,d)=>setForm(f=>({...f,origemTipo:t,origemDetalhe:d}))}/>
+            <Divider label="Motivo do Encaminhamento"/>
+            <Input label="Descrição do Motivo" value={form.motivo} onChange={v=>setF("motivo",v)}
+              required error={errs.motivo} placeholder="Ex: Pós-AVC com necessidade de fisioterapia domiciliar"/>
+            <div style={{display:"flex",gap:10,marginTop:4}}>
+              <Btn onClick={handleRegistrar} size="lg"><Ico name="search" size={15}/> Registrar para Avaliação</Btn>
+              <Btn variant="secondary" onClick={()=>{setForm({...AVAL_INIT,equipe:equipeDefault||"Equipe 01"});setErrs({});}}>Limpar</Btn>
+            </div>
+          </div>
+        </Modal>
       )}
 
-      {/* Modal admissão clínica */}
+      {/* Modal — Admissão clínica */}
       {admAlvo&&(
-        <Modal title={`Admitir — ${admAlvo.nome}`} onClose={()=>setAdmAlvo(null)} width={750}>
-          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+        <Modal title={`Admitir — ${admAlvo.nome}`} onClose={()=>setAdmAlvo(null)} width={760}>
+          <div style={{display:"flex",flexDirection:"column",gap:16,maxHeight:"80vh",overflowY:"auto",paddingRight:4}}>
             <div style={{padding:"10px 14px",background:C.primaryLt,borderRadius:C.radiusXs,fontSize:12,color:C.primaryDk,fontWeight:500}}>
               <strong>Data de Admissão:</strong> {hoje()} (gerada automaticamente)
             </div>
@@ -2015,7 +2200,8 @@ const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
           </div>
         </Modal>
       )}
-    </div>
+
+      {atividadeAlvo&&<AtividadeModal paciente={atividadeAlvo} onClose={()=>setAtividadeAlvo(null)} onSalvar={(a)=>salvarAtividade(atividadeAlvo,a)}/>}
     </div>
   );
 };
