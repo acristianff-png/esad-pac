@@ -58,14 +58,21 @@ const C = {
 const DOMINIOS_VALIDOS = ["smsa.belo-horizonte.mg.gov.br","saude.mg.gov.br","pbh.gov.br","demo.sad"];
 const API_URL = "https://script.google.com/macros/s/AKfycbzNY8zQ5JwOJRLbg1KCns67_r7nnBYQ6vkLHeNWLdmyIdDQr_SyClF9zPcWW-sqCDwWFw/exec";
 
-const EQUIPES_LIST = Array.from({length:22},(_,i)=>`Equipe ${String(i+1).padStart(2,"0")}`);
-
-const EMADS_LIST = [
-  "Barreiro 1","Barreiro 2","Barreiro 3","CS 1","CS 2","HOB 1","HOB 2",
-  "Leste 1","Leste 2","Nordeste 1","Nordeste 3","Noroeste",
-  "Norte 1","Norte 2","Oeste 1","Oeste 2","Pampulha 1","Pampulha 2",
-  "Pediátrica","Venda Nova 1","Venda Nova 2",
+const EQUIPES_LIST = [
+  "Barreiro 1","Barreiro 2","Barreiro 3 (Cuidados Paliativos)",
+  "Centro Sul 1","Centro Sul 2",
+  "HOB 1","HOB 2 (Cuidados Prolongados)",
+  "Leste 1","Leste 2",
+  "Nordeste 1","Nordeste 3",
+  "Noroeste",
+  "Norte 1","Norte 2",
+  "Oeste 1","Oeste 2",
+  "Pampulha 1","Pampulha 2",
+  "Pediátrica",
+  "Venda Nova 1","Venda Nova 2",
 ];
+
+const EMADS_LIST = EQUIPES_LIST;
 
 const UPA_LIST = ["Barreiro","Centro Sul","Leste","Norte","Nordeste","Odilon Behrens","Oeste","Pampulha","Venda Nova"];
 
@@ -260,71 +267,71 @@ const STATS_ATU = {admitidos:22,avaliados:20,visitas:287,altas:9,intercorrencias
 const PACIENTES_MOCK = [
   {id:"MASP01011945",nome:"Maria Aparecida Santos Pereira",nascimento:"01/01/1945",cpf:"123.456.789-00",
    telefone:"(31) 99999-1111",sexo:"Feminino",nomeCuidador:"José Pereira",telCuidador:"(31) 88888-0001",
-   admissao:"10/04/2026",status:"ativo",equipe:"Equipe 01",cid:"J44.1",cidCronico:"J44.0",cidInternacao:"",
+   admissao:"10/04/2026",status:"ativo",equipe:"Barreiro 1",cid:"J44.1",cidCronico:"J44.0",cidInternacao:"",
    perfil:"DOENÇAS DO TRATO RESPIRATÓRIO (EXCLUI H1N1)",ad:"AD3",score:18,
    motivo:"Agudização DPOC + necessidade O2 domiciliar",origem:"UPA",origemDetalhe:"Barreiro",
    dataDocumentos:"08/04/2026",
    SVD:true,O2:true,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB:true,CurativoEsp:false,
    atb1:"CEFTRIAXONA",atb2:"",o2Indicacao:"Sim — Contínua",paliativo:"PROPORCIONAIS",
    comorbidades:["HAS","DPOC","DESNUTRIÇÃO"],
-   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null},
+   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null,avaliacoes:[]},
   {id:"JRSS15031960",nome:"João Rodrigues da Silva Souza",nascimento:"15/03/1960",cpf:"234.567.890-11",
    telefone:"(31) 98888-2222",sexo:"Masculino",nomeCuidador:"Ana Souza",telCuidador:"(31) 88888-0002",
-   admissao:"05/04/2026",status:"ativo",equipe:"Equipe 01",cid:"I50.0",cidCronico:"I10",cidInternacao:"",
+   admissao:"05/04/2026",status:"ativo",equipe:"Barreiro 1",cid:"I50.0",cidCronico:"I10",cidInternacao:"",
    perfil:"DOENÇAS CARDIO VASCULARES (INCLUI AVC)",ad:"AD3",score:22,
    motivo:"Descompensação cardíaca + curativo de ferida complexa",origem:"Hospital",origemDetalhe:"Santa Casa",
    dataDocumentos:"04/04/2026",
    SVD:false,O2:true,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB:false,CurativoEsp:true,
    atb1:"",atb2:"",o2Indicacao:"Sim — Noturna",paliativo:"NÃO",
    comorbidades:["HAS","IAM/DAC","ICC","DMID"],
-   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null},
+   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null,avaliacoes:[]},
   {id:"AFC22061958",nome:"Ana Ferreira Costa",nascimento:"22/06/1958",cpf:"345.678.901-22",
    telefone:"(31) 97777-3333",sexo:"Feminino",nomeCuidador:"Carlos Costa",telCuidador:"(31) 88888-0003",
-   admissao:"01/03/2026",status:"ativo",equipe:"Equipe 02",cid:"G20",cidCronico:"G20",cidInternacao:"",
+   admissao:"01/03/2026",status:"ativo",equipe:"Leste 1",cid:"G20",cidCronico:"G20",cidInternacao:"",
    perfil:"DOENÇAS NEUROLÓGICAS (EXCLUI AVC)",ad:"AD2",score:14,
    motivo:"Parkinson avançado + disfagia severa",origem:"Centro de Saúde",origemDetalhe:"JARDIM LEBLON",
    dataDocumentos:"28/02/2026",
    SVD:true,O2:false,SNE:true,GTT:false,TQT:false,VM:false,Hipodermoclise:true,ATB:false,CurativoEsp:false,
    atb1:"",atb2:"",o2Indicacao:"Não",paliativo:"PROPORCIONAIS",
    comorbidades:["DP","DESNUTRIÇÃO","DEMÊNCIA"],
-   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null},
+   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null,avaliacoes:[]},
   {id:"PCO08091970",nome:"Paulo Carvalho Oliveira",nascimento:"08/09/1970",cpf:"456.789.012-33",
    telefone:"(31) 96666-4444",sexo:"Masculino",nomeCuidador:"Marta Oliveira",telCuidador:"(31) 88888-0004",
-   admissao:"",status:"avaliacao",equipe:"Equipe 01",cid:"",cidCronico:"",cidInternacao:"",
+   admissao:"",status:"avaliacao",equipe:"Barreiro 1",cid:"",cidCronico:"",cidInternacao:"",
    perfil:"",ad:"",score:0,motivo:"Sequela AVC + incontinência urinária",origem:"UPA",origemDetalhe:"Leste",
    dataDocumentos:"16/04/2026",
    SVD:false,O2:false,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB:false,CurativoEsp:false,
    atb1:"",atb2:"",o2Indicacao:"Não",paliativo:"NÃO",comorbidades:[],
-   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null},
+   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null,avaliacoes:[]},
   {id:"LSM30121965",nome:"Luisa Santos Miranda",nascimento:"30/12/1965",cpf:"567.890.123-44",
    telefone:"(31) 95555-5555",sexo:"Feminino",nomeCuidador:"Roberto Miranda",telCuidador:"(31) 88888-0005",
-   admissao:"20/03/2026",status:"alta",equipe:"Equipe 03",cid:"C50.9",cidCronico:"C50.9",cidInternacao:"",
+   admissao:"20/03/2026",status:"alta",equipe:"Norte 1",cid:"C50.9",cidCronico:"C50.9",cidInternacao:"",
    perfil:"CUIDADOS PALIATIVOS",ad:"AD3",score:20,
    motivo:"Cuidados paliativos oncológicos",origem:"Hospital",origemDetalhe:"Mario Penna",
    dataDocumentos:"18/03/2026",
    SVD:false,O2:false,SNE:false,GTT:false,TQT:false,VM:false,Hipodermoclise:false,ATB:false,CurativoEsp:false,
    atb1:"",atb2:"",o2Indicacao:"Não",paliativo:"EXCLUSIVOS",comorbidades:["NEOPLASIA"],
-   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null},
+   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null,avaliacoes:[]},
   {id:"RLCO03071950",nome:"Rosa Lima Costa Oliveira",nascimento:"03/07/1950",cpf:"678.901.234-55",
    telefone:"(31) 94444-6666",sexo:"Feminino",nomeCuidador:"Luiz Oliveira",telCuidador:"(31) 88888-0006",
-   admissao:"14/04/2026",status:"ativo",equipe:"Equipe 02",cid:"I10",cidCronico:"I10",cidInternacao:"",
+   admissao:"14/04/2026",status:"ativo",equipe:"Leste 1",cid:"I10",cidCronico:"I10",cidInternacao:"",
    perfil:"DOENÇAS CARDIO VASCULARES (INCLUI AVC)",ad:"AD2",score:12,
    motivo:"HAS descontrolada + demência avançada",origem:"EMAD",origemDetalhe:"Leste 1",
    dataDocumentos:"12/04/2026",
    SVD:true,O2:false,SNE:false,GTT:true,TQT:false,VM:false,Hipodermoclise:false,ATB:true,CurativoEsp:true,
    atb1:"AMICACINA",atb2:"",o2Indicacao:"Não",paliativo:"NÃO",
    comorbidades:["HAS","DEMÊNCIA","DRC_NÃO_DIAL"],
-   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null},
+   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null,avaliacoes:[]},
   {id:"CMSO12041948",nome:"Carlos Mendes Silva Oliveira",nascimento:"12/04/1948",cpf:"789.012.345-66",
    telefone:"(31) 93333-7777",sexo:"Masculino",nomeCuidador:"Sônia Silva",telCuidador:"(31) 88888-0007",
-   admissao:"08/04/2026",status:"ativo",equipe:"Equipe 01",cid:"G35",cidCronico:"G35",cidInternacao:"",
+   admissao:"08/04/2026",status:"ativo",equipe:"Barreiro 1",cid:"G35",cidCronico:"G35",cidInternacao:"",
    perfil:"DOENÇAS NEUROMUSCULARES",ad:"AD3",score:25,
    motivo:"EM progressiva + traqueostomia",origem:"Hospital",origemDetalhe:"Clínicas",
    dataDocumentos:"07/04/2026",
    SVD:true,O2:true,SNE:false,GTT:false,TQT:true,VM:true,Hipodermoclise:false,ATB:true,CurativoEsp:false,
    atb1:"MEROPENEM",atb2:"VANCOMICINA",o2Indicacao:"Sim — Contínua",paliativo:"NÃO",
    comorbidades:["HAS","ICC"],
-   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null},
+   transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null,avaliacoes:[]},
 ];
 
 /* ══════════════════════════════════════════════════════
@@ -759,8 +766,8 @@ const TransferenciaModal=({paciente,userEquipe,onClose,onEnviar})=>{
 const MENUS = {
   equipe: [
     {id:"dashboard",       label:"Painel Geral",      icon:"dashboard"},
-    {id:"pac_ativos",      label:"Pacientes Ativos",  icon:"users"},
     {id:"pac_avaliacao",   label:"Em Avaliação",       icon:"clipboard"},
+    {id:"pac_ativos",      label:"Pacientes Ativos",  icon:"users"},
     {id:"encaminhamentos", label:"Encaminhamentos",   icon:"send"},
     {id:"historico",       label:"Histórico",          icon:"history"},
   ],
@@ -1079,6 +1086,50 @@ const Dashboard=({pacientes,equipe,role,setPacientes})=>{
 };
 
 /* ══════════════════════════════════════════════════════
+   MODAL EDITAR PACIENTE
+══════════════════════════════════════════════════════ */
+const EditarPacienteModal=({paciente,onClose,onSalvar})=>{
+  const [form,setForm]=useState({
+    nome:paciente.nome||"",nascimento:paciente.nascimento||"",sexo:paciente.sexo||"",
+    cpf:paciente.cpf||"",telefone:paciente.telefone||"",nomeCuidador:paciente.nomeCuidador||"",
+    telCuidador:paciente.telCuidador||"",dataDocumentos:paciente.dataDocumentos||"",
+    equipe:paciente.equipe||EQUIPES_LIST[0],motivo:paciente.motivo||"",
+    origemTipo:paciente.origemTipo||"",origemDetalhe:paciente.origemDetalhe||"",
+  });
+  const s=(k,v)=>setForm(f=>({...f,[k]:v}));
+  return (
+    <Modal title={`Editar Dados — ${paciente.nome}`} onClose={onClose} width={700}>
+      <div style={{display:"flex",flexDirection:"column",gap:13,maxHeight:"78vh",overflowY:"auto",paddingRight:4}}>
+        <Divider label="Identificação"/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div style={{gridColumn:"1/-1"}}><Input label="Nome Completo" value={form.nome} onChange={v=>s("nome",v)} mask="name" required placeholder="Nome completo"/></div>
+          <Input label="Data de Nascimento" value={form.nascimento} onChange={v=>s("nascimento",v)} mask="date" placeholder="DD/MM/AAAA"/>
+          <Select label="Sexo" value={form.sexo} onChange={v=>s("sexo",v)} options={SEXO_OPTIONS}/>
+          <Input label="CPF" value={form.cpf} onChange={v=>s("cpf",v)} mask="cpf" placeholder="000.000.000-00"/>
+          <Input label="Telefone do Paciente" value={form.telefone} onChange={v=>s("telefone",v)} mask="phone"/>
+          <Input label="Nome do Cuidador" value={form.nomeCuidador} onChange={v=>s("nomeCuidador",v)} placeholder="Nome completo"/>
+          <Input label="Telefone do Cuidador" value={form.telCuidador} onChange={v=>s("telCuidador",v)} mask="phone"/>
+          <Input label="Data dos Documentos" value={form.dataDocumentos} onChange={v=>s("dataDocumentos",v)} mask="date" placeholder="DD/MM/AAAA"/>
+          <Select label="Equipe" value={form.equipe} onChange={v=>s("equipe",v)} options={EQUIPES_LIST}/>
+        </div>
+        <Divider label="Origem"/>
+        <OrigemSelector origemTipo={form.origemTipo} origemDetalhe={form.origemDetalhe}
+          onChange={(t,d)=>setForm(f=>({...f,origemTipo:t,origemDetalhe:d}))}/>
+        <div>
+          <div style={{fontSize:11,fontWeight:600,color:C.textSec,marginBottom:6}}>Motivo do Encaminhamento</div>
+          <textarea value={form.motivo} onChange={e=>s("motivo",e.target.value)} rows={2}
+            style={{width:"100%",padding:"9px 11px",borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,fontSize:12,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}}/>
+        </div>
+        <div style={{display:"flex",gap:10,marginTop:4}}>
+          <Btn variant="success" onClick={()=>onSalvar(form)}><Ico name="check" size={14}/> Salvar Alterações</Btn>
+          <Btn variant="secondary" onClick={onClose}>Cancelar</Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
+/* ══════════════════════════════════════════════════════
    ABA PACIENTES
 ══════════════════════════════════════════════════════ */
 const PacientesList=({pacientes,equipe,role,setPacientes,userEmail,statusFiltro})=>{
@@ -1090,6 +1141,7 @@ const PacientesList=({pacientes,equipe,role,setPacientes,userEmail,statusFiltro}
   const [tabPac,setTabPac]=useState({});
   const [atividadeAlvo,setAtividadeAlvo]=useState(null);
   const [avalNotaAlvo,setAvalNotaAlvo]=useState(null);
+  const [editAlvo,setEditAlvo]=useState(null);
   const [visao,setVisao]=useState("ativos"); // "ativos" | "historico" — only when !statusFiltro
 
   const lista=useMemo(()=>{
@@ -1124,6 +1176,10 @@ const PacientesList=({pacientes,equipe,role,setPacientes,userEmail,statusFiltro}
   const salvarAvalNota=(pac,nota)=>{
     setPacientes(prev=>prev.map(p=>p.id===pac.id?{...p,avaliacaoNota:nota}:p));
     setAvalNotaAlvo(null);
+  };
+  const salvarEdit=(pac,dados)=>{
+    setPacientes(prev=>prev.map(p=>p.id===pac.id?{...p,...dados}:p));
+    setEditAlvo(null);
   };
 
   const filtroLabels=statusFiltro
@@ -1246,9 +1302,13 @@ const PacientesList=({pacientes,equipe,role,setPacientes,userEmail,statusFiltro}
                           </button>
                           {p.status==="ativo"&&(
                             <>
+                              <button title="Editar dados" onClick={()=>setEditAlvo(p)}
+                                style={{width:30,height:30,borderRadius:C.radiusXs,border:`1px solid ${C.border}`,background:C.surface,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                                <Ico name="pencil" size={14} color={C.textSec}/>
+                              </button>
                               <button title="Registrar atividade" onClick={()=>setAtividadeAlvo(p)}
                                 style={{width:30,height:30,borderRadius:C.radiusXs,border:`1px solid ${C.border}`,background:C.surface,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                                <Ico name="pencil" size={14} color={C.primary}/>
+                                <Ico name="activity" size={14} color={C.primary}/>
                               </button>
                               <button title="Alta / Desfecho" onClick={()=>handleAlta(p)}
                                 style={{width:30,height:30,borderRadius:C.radiusXs,border:`1px solid ${C.dangerBd}`,background:C.dangerBg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -1439,6 +1499,7 @@ const PacientesList=({pacientes,equipe,role,setPacientes,userEmail,statusFiltro}
       </div>
 
       {avalNotaAlvo&&<AvaliacaoNotaModal paciente={avalNotaAlvo} onClose={()=>setAvalNotaAlvo(null)} onSalvar={(n)=>salvarAvalNota(avalNotaAlvo,n)}/>}
+      {editAlvo&&<EditarPacienteModal paciente={editAlvo} onClose={()=>setEditAlvo(null)} onSalvar={(d)=>salvarEdit(editAlvo,d)}/>}
       {atividadeAlvo&&<AtividadeModal paciente={atividadeAlvo} onClose={()=>setAtividadeAlvo(null)} onSalvar={(a)=>salvarAtividade(atividadeAlvo,a)}/>}
       {altaAlvo&&<AltaModal paciente={altaAlvo} onClose={()=>setAltaAlvo(null)} onConfirm={(d)=>confirmarAlta(altaAlvo,d)}/>}
       {transferAlvo&&<TransferenciaModal paciente={transferAlvo} userEquipe={equipe} onClose={()=>setTransferAlvo(null)} onEnviar={enviarTransfer}/>}
@@ -1838,79 +1899,48 @@ const FormClinico=({form,onChange})=>{
 const AVAL_INIT={nome:"",nascimento:"",cpf:"",telefone:"",sexo:"Feminino",nomeCuidador:"",telCuidador:"",dataDocumentos:"",equipe:"Equipe 01",origemTipo:"",origemDetalhe:"",motivo:""};
 
 const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
-  /* ── novo paciente modal ── */
   const [novoOpen,setNovoOpen]=useState(false);
-  const [form,setForm]=useState({...AVAL_INIT,equipe:equipeDefault||"Equipe 01"});
+  const [form,setForm]=useState({...AVAL_INIT,equipe:equipeDefault||EQUIPES_LIST[0]});
   const [errs,setErrs]=useState({});
-  /* ── expandido ── */
-  const [expandido,setExpandido]=useState(null);
-  const [tabExp,setTabExp]=useState({}); // {id:"dados"|"avaliacao"|"atividades"|"decisao"}
-  /* ── edição do paciente expandido ── */
-  const [editForms,setEditForms]=useState({});  // {id: {dados:..., nota:...}}
-  /* ── atividades ── */
-  const [atividadeAlvo,setAtividadeAlvo]=useState(null);
-  /* ── admissão clínica ── */
+  /* campos de avaliação por paciente */
+  const [cardForms,setCardForms]=useState({}); // {id:{leito,hipotese,aih,idasLeito}}
+  /* modal de nova avaliação */
+  const [novaAvalId,setNovaAvalId]=useState(null);
+  const [novaAvalForm,setNovaAvalForm]=useState({data:hoje(),profissional:"",observacao:""});
+  /* recusa admissão */
+  const [recusaOpen,setRecusaOpen]=useState({}); // {id:bool}
+  const [recusaMotivo,setRecusaMotivo]=useState({}); // {id:string}
+  /* admissão clínica */
   const [admAlvo,setAdmAlvo]=useState(null);
   const [admClinico,setAdmClinico]=useState({...FORM_CLINICO_INIT});
-  /* ── negativa inline ── */
-  const [negMotivos,setNegMotivos]=useState({});
-  /* ── msg ── */
   const [savedMsg,setSavedMsg]=useState("");
   const flash=(m)=>{setSavedMsg(m);setTimeout(()=>setSavedMsg(""),3500);};
-
-  const prontuario=gerarProntuario(form.nome,form.nascimento);
-  const emAval=pacientes.filter(p=>p.status==="avaliacao"&&(role==="equipe"?p.equipe===equipeDefault:true));
-
   const setF=(k,v)=>setForm(f=>({...f,[k]:v}));
 
-  /* ── helpers de estado de edição ── */
-  const getEF=(id)=>editForms[id]||{};
-  const setEF=(id,patch)=>setEditForms(prev=>({...prev,[id]:{...prev[id],...patch}}));
-  const getDados=(p)=>({
-    nome:p.nome,nascimento:p.nascimento,sexo:p.sexo||"",cpf:p.cpf||"",
-    telefone:p.telefone||"",nomeCuidador:p.nomeCuidador||"",telCuidador:p.telCuidador||"",
-    dataDocumentos:p.dataDocumentos||"",equipe:p.equipe,motivo:p.motivo||"",
-    origemTipo:p.origemTipo||"",origemDetalhe:p.origemDetalhe||"",
-  });
-  const getNota=(p)=>({...NOTA_AVAL_INIT,...(p.avaliacaoNota||{})});
+  const emAval=pacientes.filter(p=>p.status==="avaliacao"&&(role==="equipe"?p.equipe===equipeDefault:true));
 
-  const abrirExpandido=(id,p)=>{
-    setExpandido(prev=>prev===id?null:id);
-    if(!editForms[id]) setEditForms(prev=>({...prev,[id]:{dados:getDados(p),nota:getNota(p)}}));
-    if(!tabExp[id]) setTabExp(prev=>({...prev,[id]:"avaliacao"}));
-  };
+  const getCF=(p)=>cardForms[p.id]||{leito:p.avaliacaoNota?.leito||"",hipotese:p.avaliacaoNota?.hipotese||"",aih:p.avaliacaoNota?.aih||"Não",idasLeito:p.avaliacaoNota?.idasLeito||0};
+  const setCF=(id,k,v)=>setCardForms(prev=>({...prev,[id]:{...(prev[id]||{}), [k]:v}}));
 
-  const salvarDados=(p)=>{
-    const d=getEF(p.id).dados||getDados(p);
-    setPacientes(prev=>prev.map(x=>x.id===p.id?{...x,...d}:x));
-    flash("✓ Dados atualizados.");
-  };
-
-  const salvarNota=(p)=>{
-    const n=getEF(p.id).nota||getNota(p);
-    setPacientes(prev=>prev.map(x=>x.id===p.id?{...x,avaliacaoNota:n}:x));
-    flash("✓ Avaliação registrada.");
-  };
-
-  const salvarAtividade=(pac,ativ)=>{
-    setPacientes(prev=>prev.map(p=>p.id===pac.id?{...p,atividades:[...(p.atividades||[]),ativ]}:p));
-    setAtividadeAlvo(null);
+  const handleNovaAval=(p)=>{
+    if(!novaAvalForm.profissional.trim()){alert("Informe o profissional que realizou a avaliação.");return;}
+    const cf=getCF(p);
+    const entry={id:Date.now(),data:novaAvalForm.data||hoje(),profissional:novaAvalForm.profissional,observacao:novaAvalForm.observacao,...cf};
+    setPacientes(prev=>prev.map(x=>x.id===p.id?{...x,avaliacoes:[...(x.avaliacoes||[]),entry],avaliacaoNota:{...cf}}:x));
+    setNovaAvalId(null);setNovaAvalForm({data:hoje(),profissional:"",observacao:""});
+    flash("✓ Avaliação registrada no histórico.");
   };
 
   const handleAdmitir=()=>{
-    if(!admClinico.cid||!admClinico.perfil||!admClinico.ad){
-      alert("Preencha CID, Perfil Epidemiológico e Classificação AD."); return;
-    }
+    if(!admClinico.cid||!admClinico.perfil||!admClinico.ad){alert("Preencha CID, Perfil Epidemiológico e Classificação AD.");return;}
     setPacientes(prev=>prev.map(p=>p.id===admAlvo.id?{...p,status:"ativo",admissao:hoje(),...admClinico}:p));
-    setAdmAlvo(null); setExpandido(null);
-    flash("✓ Paciente admitido com sucesso!");
+    setAdmAlvo(null);flash("✓ Paciente admitido com sucesso!");
   };
 
-  const handleNegativa=(p)=>{
-    const m=negMotivos[p.id];
-    if(!m){alert("Informe o motivo da negativa."); return;}
+  const handleRecusar=(p)=>{
+    const m=recusaMotivo[p.id];
+    if(!m){alert("Selecione o motivo da não admissão.");return;}
     setPacientes(prev=>prev.map(x=>x.id===p.id?{...x,status:"negativa",motivo:m}:x));
-    setExpandido(null);
     flash("✓ Paciente registrado como Não Elegível.");
   };
 
@@ -1919,36 +1949,30 @@ const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
     if(!form.nome.trim()) e.nome="Obrigatório";
     if(!form.nascimento.trim()) e.nascimento="Obrigatório";
     if(!form.motivo.trim()) e.motivo="Descreva o motivo";
-    if(!prontuario) e.nome="Mín. 2 palavras";
-    setErrs(e); return !Object.keys(e).length;
+    const p=gerarProntuario(form.nome,form.nascimento);
+    if(!p) e.nome="Mín. 2 palavras";
+    setErrs(e);return !Object.keys(e).length;
   };
 
   const handleRegistrar=()=>{
     if(!validate()) return;
+    const pron=gerarProntuario(form.nome,form.nascimento);
     setPacientes(prev=>[...prev,{
-      ...form,id:prontuario,status:"avaliacao",admissao:"",
+      ...form,id:pron,status:"avaliacao",admissao:"",
       cid:"",cidCronico:"",cidInternacao:"",perfil:"",ad:"",score:0,
       SVD:false,O2:false,SNE:false,GTT:false,TQT:false,VM:false,
       Hipodermoclise:false,ATB:false,CurativoEsp:false,
       atb1:"",atb2:"",atb1Outro:"",atb2Outro:"",o2Indicacao:"Não",paliativo:"NÃO",comorbidades:[],
-      transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null,
+      transferenciaDest:"",transferenciaOrig:"",transferenciaNote:"",atividades:[],avaliacaoNota:null,avaliacoes:[],
     }]);
-    setForm({...AVAL_INIT,equipe:equipeDefault||"Equipe 01"});
-    setNovoOpen(false);
-    flash("✓ Paciente registrado para avaliação!");
+    setForm({...AVAL_INIT,equipe:equipeDefault||EQUIPES_LIST[0]});
+    setNovoOpen(false);flash("✓ Paciente registrado para avaliação!");
   };
-
-  const tabStyle=(ativo)=>({
-    display:"flex",alignItems:"center",gap:6,padding:"9px 14px",border:"none",
-    borderBottom:ativo?`2px solid ${C.primary}`:"2px solid transparent",
-    background:"transparent",cursor:"pointer",fontSize:12,fontWeight:ativo?700:400,
-    color:ativo?C.primaryDk:C.textMuted,fontFamily:"inherit",transition:"color 0.12s",
-  });
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
 
-      {/* Header com botão Novo Paciente */}
+      {/* Header */}
       <div style={{padding:"16px 28px",borderBottom:`1px solid ${C.border}`,background:C.surface,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:3}}>Home › Avaliação</div>
@@ -1959,8 +1983,7 @@ const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
         <Btn onClick={()=>setNovoOpen(true)}><Ico name="plus" size={15}/> Novo Paciente</Btn>
       </div>
 
-      <div style={{flex:1,overflowY:"auto",padding:"20px 28px",display:"flex",flexDirection:"column",gap:10}}>
-
+      <div style={{flex:1,overflowY:"auto",padding:"20px 28px",display:"flex",flexDirection:"column",gap:14}}>
         {savedMsg&&<div style={{padding:"10px 16px",background:C.successBg,borderRadius:C.radiusXs,fontSize:13,fontWeight:600,color:C.success,border:`1px solid ${C.successBd}`}}>{savedMsg}</div>}
 
         {emAval.length===0&&(
@@ -1972,194 +1995,155 @@ const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
         )}
 
         {emAval.map(p=>{
-          const exp=expandido===p.id;
           const idade=calcIdade(p.nascimento);
-          const ef=getEF(p.id);
-          const tab=tabExp[p.id]||"avaliacao";
-          const dados=ef.dados||getDados(p);
-          const nota=ef.nota||getNota(p);
-          const setD=(k,v)=>setEF(p.id,{dados:{...dados,[k]:v}});
-          const setN=(k,v)=>setEF(p.id,{nota:{...nota,[k]:v}});
+          const cf=getCF(p);
+          const avaliacoes=p.avaliacoes||[];
           const bg=avatarColor(p.nome);
+          const isRecusaOpen=recusaOpen[p.id];
 
           return (
-            <Card key={p.id} style={{padding:0,overflow:"hidden",border:exp?`2px solid ${C.primary}`:`1px solid ${C.border}`}}>
-
-              {/* Cabeçalho do card — clicável */}
-              <div onClick={()=>abrirExpandido(p.id,p)}
-                style={{padding:"14px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:12,
-                  background:exp?C.primaryLt:C.surface,transition:"background 0.12s"}}>
-                <div style={{width:40,height:40,borderRadius:"50%",background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff",flexShrink:0}}>
-                  {initials(p.nome)}
-                </div>
+            <Card key={p.id} style={{padding:0,overflow:"hidden"}}>
+              {/* ── Cabeçalho ── */}
+              <div style={{padding:"16px 20px",background:C.surfaceAlt,borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:44,height:44,borderRadius:"50%",background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:700,color:"#fff",flexShrink:0}}>{initials(p.nome)}</div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:14,fontWeight:700,color:exp?C.primaryDk:C.text}}>{p.nome}</div>
-                  <div style={{fontSize:11,color:C.textMuted,marginTop:2,display:"flex",gap:10,flexWrap:"wrap"}}>
+                  <div style={{fontSize:15,fontWeight:700,color:C.text}}>{p.nome}</div>
+                  <div style={{fontSize:11,color:C.textMuted,marginTop:2,display:"flex",gap:12,flexWrap:"wrap"}}>
                     <span>{idade!=null?`${idade} anos · `:""}Prontuário: {p.id}</span>
                     <span>Equipe: {p.equipe}</span>
-                    {p.dataDocumentos&&<span>Docs: {p.dataDocumentos}</span>}
-                  </div>
-                  <div style={{fontSize:12,color:C.textSec,marginTop:2}}>
-                    {p.origemTipo&&<span>Origem: {p.origemTipo}{p.origemDetalhe?` — ${p.origemDetalhe}`:""} · </span>}
-                    {p.motivo&&<span>{p.motivo}</span>}
                   </div>
                 </div>
-                <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
-                  {p.avaliacaoNota&&<span style={{padding:"2px 9px",borderRadius:999,background:C.orangeBg,color:C.brown,fontSize:10,fontWeight:700,border:`1px solid ${C.orangeBd}`}}>Avaliação registrada</span>}
-                  <Ico name={exp?"x":"eye"} size={16} color={exp?C.primary:C.textMuted}/>
+                <Badge status="avaliacao"/>
+              </div>
+
+              {/* ── Dados do paciente ── */}
+              <div style={{padding:"14px 20px",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:"6px 16px",borderBottom:`1px solid ${C.border}`}}>
+                {[
+                  ["Nascimento",p.nascimento||"—"],["Sexo",p.sexo||"—"],["CPF",p.cpf||"—"],
+                  ["Telefone",p.telefone||"—"],["Cuidador",p.nomeCuidador||"—"],["Tel. Cuidador",p.telCuidador||"—"],
+                  ["Docs. recebidos",p.dataDocumentos||"—"],["Origem",p.origemTipo?(p.origemTipo+(p.origemDetalhe?` — ${p.origemDetalhe}`:"")):("—")],
+                ].map(([l,v])=>(
+                  <div key={l}>
+                    <div style={{fontSize:9,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.06em"}}>{l}</div>
+                    <div style={{fontSize:12,color:C.textSec,marginTop:1}}>{v}</div>
+                  </div>
+                ))}
+                {p.motivo&&(
+                  <div style={{gridColumn:"1/-1"}}>
+                    <div style={{fontSize:9,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.06em"}}>Motivo do encaminhamento</div>
+                    <div style={{fontSize:12,color:C.textSec,marginTop:1}}>{p.motivo}</div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Campos de avaliação (editáveis) ── */}
+              <div style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`}}>
+                <div style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:10}}>Dados da Avaliação Atual</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
+                  <Input label="Leito / Localização" value={cf.leito} onChange={v=>setCF(p.id,"leito",v)} placeholder="Ex: Leito 12 — CM"/>
+                  <Input label="Hipótese Diagnóstica" value={cf.hipotese} onChange={v=>setCF(p.id,"hipotese",v)} placeholder="Hipótese principal"/>
+                  <Select label="AIH" value={cf.aih} onChange={v=>setCF(p.id,"aih",v)}
+                    options={["Sim","Não","Aguardando"].map(x=>({value:x,label:x}))}/>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:12,fontWeight:600,color:C.textSec}}>Idas ao leito para avaliação:</span>
+                  <button onClick={()=>setCF(p.id,"idasLeito",Math.max(0,(cf.idasLeito||0)-1))}
+                    style={{width:28,height:28,borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,background:C.surface,fontSize:16,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+                  <div style={{fontSize:20,fontWeight:800,color:C.primaryDk,minWidth:32,textAlign:"center"}}>{cf.idasLeito||0}</div>
+                  <button onClick={()=>setCF(p.id,"idasLeito",(cf.idasLeito||0)+1)}
+                    style={{width:28,height:28,borderRadius:C.radiusXs,border:`1.5px solid ${C.primary}`,background:C.primaryLt,fontSize:16,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",color:C.primaryDk}}>+</button>
                 </div>
               </div>
 
-              {/* Painel expandido */}
-              {exp&&(
-                <div style={{borderTop:`1px solid ${C.primary}33`}}>
-                  {/* Tabs */}
-                  <div style={{display:"flex",borderBottom:`1px solid ${C.border}`,background:C.surface}}>
-                    {[["avaliacao","Nota de Avaliação","clipboard"],["dados","Dados do Paciente","note"],["atividades",`Atividades (${(p.atividades||[]).length})`,"activity"],["decisao","Decisão","flag"]].map(([k,lbl,ic])=>(
-                      <button key={k} onClick={()=>setTabExp(prev=>({...prev,[p.id]:k}))} style={tabStyle(tab===k)}>
-                        <Ico name={ic} size={13} color={tab===k?C.primaryDk:C.textMuted}/>{lbl}
-                      </button>
+              {/* ── Histórico de avaliações ── */}
+              {avaliacoes.length>0&&(
+                <div style={{padding:"12px 20px",borderBottom:`1px solid ${C.border}`,background:C.surfaceAlt}}>
+                  <div style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8}}>Histórico de Avaliações ({avaliacoes.length})</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    {[...avaliacoes].reverse().map((a,i)=>(
+                      <div key={a.id||i} style={{padding:"9px 12px",borderRadius:C.radiusXs,background:C.surface,border:`1px solid ${C.border}`,fontSize:12}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
+                          <span style={{fontWeight:700,color:C.text}}>{a.profissional}</span>
+                          <span style={{fontSize:10,color:C.textMuted}}>{a.data}</span>
+                        </div>
+                        {a.observacao&&<div style={{color:C.textSec,marginBottom:4}}>{a.observacao}</div>}
+                        <div style={{display:"flex",gap:12,fontSize:10,color:C.textMuted,flexWrap:"wrap"}}>
+                          {a.leito&&<span>Leito: {a.leito}</span>}
+                          {a.hipotese&&<span>Hipótese: {a.hipotese}</span>}
+                          {a.aih&&<span>AIH: {a.aih}</span>}
+                          {a.idasLeito>0&&<span>Idas ao leito: {a.idasLeito}</span>}
+                        </div>
+                      </div>
                     ))}
-                    <div style={{flex:1}}/>
-                    <div style={{padding:"6px 12px",display:"flex",gap:6,alignItems:"center"}}>
-                      <Btn size="sm" variant="primary" onClick={()=>setAtividadeAlvo(p)}><Ico name="pencil" size={12}/> Registrar Atividade</Btn>
-                    </div>
-                  </div>
-
-                  <div style={{padding:"18px 20px"}}>
-
-                    {/* TAB — NOTA DE AVALIAÇÃO */}
-                    {tab==="avaliacao"&&(
-                      <div style={{display:"flex",flexDirection:"column",gap:14}}>
-                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
-                          <Input label="Data de conhecimento pela equipe" value={nota.dataConhecimento} onChange={v=>setN("dataConhecimento",v)} mask="date" placeholder="DD/MM/AAAA"/>
-                          <Input label="Leito / Localização" value={nota.leito} onChange={v=>setN("leito",v)} placeholder="Ex: Leito 12 — Clínica Médica"/>
-                          <Select label="AIH" value={nota.aih} onChange={v=>setN("aih",v)}
-                            options={["Sim","Não","Aguardando"].map(x=>({value:x,label:x}))}/>
-                        </div>
-                        <Input label="Hipótese Diagnóstica" value={nota.hipotese} onChange={v=>setN("hipotese",v)} placeholder="Hipótese diagnóstica principal"/>
-                        {/* Idas ao leito */}
-                        <div>
-                          <div style={{fontSize:11,fontWeight:600,color:C.textSec,marginBottom:6}}>Idas ao leito para avaliação</div>
-                          <div style={{display:"flex",alignItems:"center",gap:10}}>
-                            <button onClick={()=>setN("idasLeito",Math.max(0,(nota.idasLeito||0)-1))}
-                              style={{width:32,height:32,borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,background:C.surface,fontSize:18,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
-                            <div style={{fontSize:24,fontWeight:800,color:C.primaryDk,minWidth:40,textAlign:"center"}}>{nota.idasLeito||0}</div>
-                            <button onClick={()=>setN("idasLeito",(nota.idasLeito||0)+1)}
-                              style={{width:32,height:32,borderRadius:C.radiusXs,border:`1.5px solid ${C.primary}`,background:C.primaryLt,fontSize:18,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",color:C.primaryDk}}>+</button>
-                          </div>
-                        </div>
-                        <Select label="Motivo da Não Admissão" value={nota.motivoNaoAdm} onChange={v=>setN("motivoNaoAdm",v)}
-                          options={[{value:"",label:"Selecione (se houver)"},...MOTIVO_NAO_ADMISSAO_LIST.map(x=>({value:x,label:x}))]}/>
-                        <div>
-                          <div style={{fontSize:11,fontWeight:600,color:C.textSec,marginBottom:6}}>Observação da equipe</div>
-                          <textarea value={nota.observacao} onChange={e=>setN("observacao",e.target.value)}
-                            placeholder="Observações sobre a avaliação, evolução clínica, pendências..."
-                            rows={3} style={{width:"100%",padding:"10px 12px",borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,fontSize:12,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}}/>
-                        </div>
-                        <Btn onClick={()=>salvarNota(p)} variant="success"><Ico name="check" size={14}/> Salvar Avaliação</Btn>
-                      </div>
-                    )}
-
-                    {/* TAB — DADOS DO PACIENTE */}
-                    {tab==="dados"&&(
-                      <div style={{display:"flex",flexDirection:"column",gap:14}}>
-                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                          <div style={{gridColumn:"1/-1"}}>
-                            <Input label="Nome Completo" value={dados.nome} onChange={v=>setD("nome",v)} mask="name" required placeholder="Nome completo"/>
-                          </div>
-                          <Input label="Data de Nascimento" value={dados.nascimento} onChange={v=>setD("nascimento",v)} mask="date" placeholder="DD/MM/AAAA"/>
-                          <Select label="Sexo" value={dados.sexo} onChange={v=>setD("sexo",v)} options={SEXO_OPTIONS}/>
-                          <Input label="CPF" value={dados.cpf} onChange={v=>setD("cpf",v)} mask="cpf" placeholder="000.000.000-00"/>
-                          <Input label="Telefone do Paciente" value={dados.telefone} onChange={v=>setD("telefone",v)} mask="phone"/>
-                          <Input label="Nome do Cuidador" value={dados.nomeCuidador} onChange={v=>setD("nomeCuidador",v)} placeholder="Nome completo"/>
-                          <Input label="Telefone do Cuidador" value={dados.telCuidador} onChange={v=>setD("telCuidador",v)} mask="phone"/>
-                          <Input label="Data dos Documentos" value={dados.dataDocumentos} onChange={v=>setD("dataDocumentos",v)} mask="date" placeholder="DD/MM/AAAA"/>
-                        </div>
-                        <Divider label="Origem"/>
-                        <OrigemSelector origemTipo={dados.origemTipo} origemDetalhe={dados.origemDetalhe}
-                          onChange={(t,d)=>setEF(p.id,{dados:{...dados,origemTipo:t,origemDetalhe:d}})}/>
-                        <div>
-                          <div style={{fontSize:11,fontWeight:600,color:C.textSec,marginBottom:6}}>Motivo do Encaminhamento</div>
-                          <textarea value={dados.motivo} onChange={e=>setD("motivo",e.target.value)}
-                            placeholder="Descreva o motivo do encaminhamento"
-                            rows={2} style={{width:"100%",padding:"10px 12px",borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,fontSize:12,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}}/>
-                        </div>
-                        <Btn onClick={()=>salvarDados(p)} variant="success"><Ico name="check" size={14}/> Salvar Alterações</Btn>
-                      </div>
-                    )}
-
-                    {/* TAB — ATIVIDADES */}
-                    {tab==="atividades"&&(
-                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                        {(!p.atividades||p.atividades.length===0)
-                          ?<div style={{padding:"24px",textAlign:"center",color:C.textMuted,fontSize:13,background:C.surface,borderRadius:C.radiusSm,border:`1px dashed ${C.border}`}}>
-                              Nenhuma atividade registrada.<br/>
-                              <span style={{fontSize:11}}>Clique em "Registrar Atividade" para adicionar visitas e idas ao leito.</span>
-                            </div>
-                          :[...(p.atividades||[])].reverse().map((a,i)=>(
-                            <div key={a.id||i} style={{padding:"10px 14px",borderRadius:C.radiusSm,background:C.surface,border:`1px solid ${a.intercorrencia?C.dangerBd:C.border}`,display:"flex",gap:10,alignItems:"flex-start"}}>
-                              <div style={{width:8,height:8,borderRadius:"50%",background:a.intercorrencia?C.danger:C.success,flexShrink:0,marginTop:4}}/>
-                              <div style={{flex:1}}>
-                                <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-                                  <span style={{fontSize:12,fontWeight:700,color:C.text}}>{a.tipo}</span>
-                                  <span style={{fontSize:11,color:C.textMuted}}>· {a.profissional}</span>
-                                  {a.intercorrencia&&<span style={{fontSize:10,padding:"1px 7px",borderRadius:999,background:C.dangerBg,color:C.danger,fontWeight:600}}>INTERCORRÊNCIA</span>}
-                                  <span style={{fontSize:11,color:C.textMuted,marginLeft:"auto"}}>{a.data}{a.duracao?` · ${a.duracao}`:""}</span>
-                                </div>
-                                {a.descricao&&<div style={{fontSize:12,color:C.textSec,marginTop:4}}>{a.descricao}</div>}
-                              </div>
-                            </div>
-                          ))
-                        }
-                      </div>
-                    )}
-
-                    {/* TAB — DECISÃO */}
-                    {tab==="decisao"&&(
-                      <div style={{display:"flex",flexDirection:"column",gap:14}}>
-                        <div style={{padding:"12px 15px",background:C.primaryLt,borderRadius:C.radiusXs,border:`1px solid ${C.primary}22`,fontSize:13,color:C.primaryDk}}>
-                          Defina o desfecho da avaliação para <strong>{p.nome}</strong>. A admissão gerará o prontuário definitivo e ativará o acompanhamento.
-                        </div>
-                        <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                          <div style={{flex:1,minWidth:220,padding:16,borderRadius:C.radiusSm,border:`1.5px solid ${C.successBd}`,background:C.successBg}}>
-                            <div style={{fontSize:13,fontWeight:700,color:C.success,marginBottom:6,display:"flex",alignItems:"center",gap:6}}><Ico name="check" size={15} color={C.success}/> Admitir Paciente</div>
-                            <div style={{fontSize:12,color:C.textSec,marginBottom:12}}>Preencha o perfil clínico completo (CID, dispositivos, comorbidades) e confirme a admissão.</div>
-                            <Btn variant="success" onClick={()=>{setAdmAlvo(p);setAdmClinico({...FORM_CLINICO_INIT});}}><Ico name="check" size={14}/> Iniciar Admissão</Btn>
-                          </div>
-                          <div style={{flex:1,minWidth:220,padding:16,borderRadius:C.radiusSm,border:`1.5px solid ${C.dangerBd}`,background:C.dangerBg}}>
-                            <div style={{fontSize:13,fontWeight:700,color:C.danger,marginBottom:6,display:"flex",alignItems:"center",gap:6}}><Ico name="x" size={15} color={C.danger}/> Não Elegível</div>
-                            <div style={{fontSize:12,color:C.textSec,marginBottom:10}}>Registre o motivo da não elegibilidade para o histórico da equipe.</div>
-                            <textarea value={negMotivos[p.id]||""} onChange={e=>setNegMotivos(prev=>({...prev,[p.id]:e.target.value}))}
-                              placeholder="Descreva o motivo da não elegibilidade..."
-                              rows={2} style={{width:"100%",padding:"8px 10px",borderRadius:C.radiusXs,border:`1.5px solid ${C.dangerBd}`,fontSize:12,fontFamily:"inherit",resize:"vertical",outline:"none",marginBottom:8,boxSizing:"border-box"}}/>
-                            <Btn variant="secondary" onClick={()=>handleNegativa(p)}><Ico name="x" size={14}/> Confirmar Não Elegível</Btn>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
+
+              {/* ── Seção de Recusa (condicional) ── */}
+              {isRecusaOpen&&(
+                <div style={{padding:"14px 20px",borderBottom:`1px solid ${C.border}`,background:C.dangerBg}}>
+                  <div style={{fontSize:12,fontWeight:700,color:C.danger,marginBottom:10,display:"flex",alignItems:"center",gap:6}}><Ico name="x" size={14} color={C.danger}/> Registrar Não Elegibilidade</div>
+                  <Select label="Motivo da Não Admissão" value={recusaMotivo[p.id]||""} onChange={v=>setRecusaMotivo(prev=>({...prev,[p.id]:v}))}
+                    options={[{value:"",label:"— Selecione o motivo —"},...MOTIVO_NAO_ADMISSAO_LIST.map(x=>({value:x,label:x}))]}/>
+                  <div style={{display:"flex",gap:8,marginTop:10}}>
+                    <Btn variant="secondary" size="sm" onClick={()=>handleRecusar(p)}><Ico name="x" size={13}/> Confirmar Não Elegível</Btn>
+                    <Btn variant="secondary" size="sm" onClick={()=>setRecusaOpen(prev=>({...prev,[p.id]:false}))}>Cancelar</Btn>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Botões de ação ── */}
+              <div style={{padding:"12px 20px",display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",background:C.surface}}>
+                <Btn onClick={()=>{setNovaAvalId(p.id);setNovaAvalForm({data:hoje(),profissional:"",observacao:""});}}><Ico name="clipboard" size={14}/> Registrar Nova Avaliação</Btn>
+                <Btn variant="success" onClick={()=>{setAdmAlvo(p);setAdmClinico({...FORM_CLINICO_INIT});}}><Ico name="check" size={14}/> Admitir</Btn>
+                <Btn variant="secondary" onClick={()=>setRecusaOpen(prev=>({...prev,[p.id]:!prev[p.id]}))}><Ico name="x" size={14}/> Recusar Admissão</Btn>
+              </div>
             </Card>
           );
         })}
       </div>
 
+      {/* Modal — Registrar Nova Avaliação */}
+      {novaAvalId&&(()=>{
+        const pac=pacientes.find(p=>p.id===novaAvalId);
+        if(!pac) return null;
+        return (
+          <Modal title={`Nova Avaliação — ${pac.nome}`} onClose={()=>setNovaAvalId(null)} width={520}>
+            <div style={{display:"flex",flexDirection:"column",gap:13}}>
+              <div style={{padding:"9px 13px",background:C.primaryLt,borderRadius:C.radiusXs,fontSize:12,color:C.primaryDk}}>
+                Os dados de leito, hipótese, AIH e idas ao leito informados no card serão incluídos automaticamente.
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <Input label="Data da Avaliação" value={novaAvalForm.data} onChange={v=>setNovaAvalForm(f=>({...f,data:v}))} mask="date" placeholder="DD/MM/AAAA"/>
+                <Input label="Profissional" value={novaAvalForm.profissional} onChange={v=>setNovaAvalForm(f=>({...f,profissional:v}))} required placeholder="Nome do profissional"/>
+              </div>
+              <div>
+                <div style={{fontSize:11,fontWeight:600,color:C.textSec,marginBottom:6}}>Observação / Evolução</div>
+                <textarea value={novaAvalForm.observacao} onChange={e=>setNovaAvalForm(f=>({...f,observacao:e.target.value}))}
+                  placeholder="Descreva a avaliação, evolução clínica, intercorrências..."
+                  rows={4} style={{width:"100%",padding:"10px 12px",borderRadius:C.radiusXs,border:`1.5px solid ${C.border}`,fontSize:12,fontFamily:"inherit",resize:"vertical",outline:"none",boxSizing:"border-box"}}/>
+              </div>
+              <div style={{display:"flex",gap:10}}>
+                <Btn variant="success" onClick={()=>handleNovaAval(pac)}><Ico name="check" size={14}/> Salvar Avaliação</Btn>
+                <Btn variant="secondary" onClick={()=>setNovaAvalId(null)}>Cancelar</Btn>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
+
       {/* Modal — Novo Paciente */}
       {novoOpen&&(
-        <Modal title="Registrar Novo Paciente para Avaliação" onClose={()=>{setNovoOpen(false);setForm({...AVAL_INIT,equipe:equipeDefault||"Equipe 01"});setErrs({});}} width={700}>
+        <Modal title="Registrar Novo Paciente para Avaliação" onClose={()=>{setNovoOpen(false);setForm({...AVAL_INIT,equipe:equipeDefault||EQUIPES_LIST[0]});setErrs({});}} width={700}>
           <div style={{display:"flex",flexDirection:"column",gap:14,maxHeight:"75vh",overflowY:"auto",paddingRight:4}}>
-            {prontuario&&(
+            {gerarProntuario(form.nome,form.nascimento)&&(
               <div style={{padding:"10px 14px",background:C.primaryLt,borderRadius:C.radiusXs,fontSize:12,color:C.primaryDk,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
-                <Ico name="note" size={13} color={C.primaryDk}/> Prontuário provisório: {prontuario}
+                <Ico name="note" size={13} color={C.primaryDk}/> Prontuário provisório: {gerarProntuario(form.nome,form.nascimento)}
               </div>
             )}
             <Divider label="Identificação"/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div style={{gridColumn:"1/-1"}}>
-                <Input label="Nome Completo" value={form.nome} onChange={v=>setF("nome",v)} mask="name" required error={errs.nome} placeholder="Nome completo do paciente"/>
-              </div>
+              <div style={{gridColumn:"1/-1"}}><Input label="Nome Completo" value={form.nome} onChange={v=>setF("nome",v)} mask="name" required error={errs.nome} placeholder="Nome completo do paciente"/></div>
               <Input label="Data de Nascimento" value={form.nascimento} onChange={v=>setF("nascimento",v)} mask="date" required error={errs.nascimento} placeholder="DD/MM/AAAA"/>
               <Select label="Sexo" value={form.sexo} onChange={v=>setF("sexo",v)} options={SEXO_OPTIONS}/>
               <Input label="CPF" value={form.cpf} onChange={v=>setF("cpf",v)} mask="cpf" placeholder="000.000.000-00"/>
@@ -2167,9 +2151,7 @@ const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
               <Input label="Nome do Cuidador" value={form.nomeCuidador} onChange={v=>setF("nomeCuidador",v)} placeholder="Nome completo"/>
               <Input label="Telefone do Cuidador" value={form.telCuidador} onChange={v=>setF("telCuidador",v)} mask="phone"/>
               <Input label="Data dos Documentos" value={form.dataDocumentos} onChange={v=>setF("dataDocumentos",v)} mask="date" placeholder="DD/MM/AAAA"/>
-              {role==="coordenacao"&&(
-                <Select label="Equipe" value={form.equipe} onChange={v=>setF("equipe",v)} options={EQUIPES_LIST}/>
-              )}
+              <Select label="Equipe" value={form.equipe} onChange={v=>setF("equipe",v)} options={EQUIPES_LIST}/>
             </div>
             <Divider label="Origem"/>
             <OrigemSelector origemTipo={form.origemTipo} origemDetalhe={form.origemDetalhe}
@@ -2179,7 +2161,7 @@ const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
               required error={errs.motivo} placeholder="Ex: Pós-AVC com necessidade de fisioterapia domiciliar"/>
             <div style={{display:"flex",gap:10,marginTop:4}}>
               <Btn onClick={handleRegistrar} size="lg"><Ico name="search" size={15}/> Registrar para Avaliação</Btn>
-              <Btn variant="secondary" onClick={()=>{setForm({...AVAL_INIT,equipe:equipeDefault||"Equipe 01"});setErrs({});}}>Limpar</Btn>
+              <Btn variant="secondary" onClick={()=>{setForm({...AVAL_INIT,equipe:equipeDefault||EQUIPES_LIST[0]});setErrs({});}}>Limpar</Btn>
             </div>
           </div>
         </Modal>
@@ -2200,8 +2182,6 @@ const AvaliacaoAdmissao=({pacientes,setPacientes,equipeDefault,role,user})=>{
           </div>
         </Modal>
       )}
-
-      {atividadeAlvo&&<AtividadeModal paciente={atividadeAlvo} onClose={()=>setAtividadeAlvo(null)} onSalvar={(a)=>salvarAtividade(atividadeAlvo,a)}/>}
     </div>
   );
 };
@@ -2541,7 +2521,7 @@ function App(){
   const equipe=useMemo(()=>{
     if(!user) return null;
     const local=user.split("@")[0];
-    return EQUIPES_LIST.find(e=>e.toLowerCase().replace(/\s/g,"")===local)||"Equipe 01";
+    return EQUIPES_LIST.find(e=>e.toLowerCase().replace(/\s/g,"")===local)||EQUIPES_LIST[0];
   },[user]);
 
   const handleLogin=(email,r)=>{setUser(email);setRole(r);setPage(r==="coordenacao"?"coord_dash":"dashboard");};
